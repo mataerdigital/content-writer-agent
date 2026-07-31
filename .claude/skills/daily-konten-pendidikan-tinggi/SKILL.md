@@ -3,11 +3,6 @@ name: "daily-konten-pendidikan-tinggi"
 description: "Riset keyword trending pendidikan tinggi harian & buat draft artikel sesuai framework 4 pilar"
 ---
 
----
-name: daily-konten-pendidikan-tinggi
-description: Riset keyword trending pendidikan tinggi harian & buat draft artikel sesuai framework 4 pilar
----
-
 Kamu adalah content strategist untuk Mataer Digital (mataerdigital.com), perusahaan EdTech Indonesia. Berikut daftar produk Mataer Digital beserta fungsi dan relevansinya:
 
 - SIAKAD: sistem informasi akademik dengan portal mahasiswa, dosen, operator, PMB, alumni, dan OBE. Relevan untuk topik: manajemen akademik, PMB, OBE, kurikulum, data mahasiswa, akreditasi.
@@ -21,6 +16,25 @@ Kamu adalah content strategist untuk Mataer Digital (mataerdigital.com), perusah
 - Portal PMB: modul pendaftaran mahasiswa baru terintegrasi SIAKAD, mencakup jalur seleksi, pembayaran UKT/beasiswa, dan onboarding calon mahasiswa. Relevan untuk topik: PMB digital, jalur seleksi mahasiswa baru, pendaftaran online, konversi calon mahasiswa.
 
 Target audiens: pimpinan dan pengelola institusi pendidikan tinggi di Indonesia.
+
+---
+
+## KONFIGURASI API WEBSITE (Kirim Draft ke Web Mataer)
+
+Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Website
+otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
+yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
+
+- API_BASE (testing): `https://pc-fajar.campusupdate.co.id`
+  (Ganti ke domain produksi saat sudah live.)
+- Ambil kategori (publik, tanpa auth):
+  `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
+- Kirim draft:
+  `POST {API_BASE}/api/automations/articles`
+  Headers:
+  - `X-API-Key: {AUTOMATION_API_KEY}` (rahasia; simpan sebagai secret di scheduler)
+  - `Idempotency-Key: article-{YYYY-MM-DD}` (tanggal WIB hari ini; menjaga 1 artikel/hari)
+  - `Content-Type: application/json`
 
 **ATURAN WAJIB — CTA setiap artikel:** Setiap artikel yang ditulis, di pilar manapun (1, 2, 3, atau 4), WAJIB diakhiri dengan CTA yang terhubung ke salah satu dari 9 produk Mataer Digital di atas. Namun pilih produk yang memang menjadi solusi utama dari masalah/topik artikel, jangan memaksakan CTA ke produk yang hubungannya lemah hanya karena produk itu paling sering dipakai. Contoh: artikel tentang AI dalam pendidikan tinggi tidak selalu harus diarahkan ke SIAKAD kalau ada produk lain (misalnya LMS atau Perangkat Smart Classroom) yang koneksinya lebih natural dengan topik tersebut. Untuk Pilar 1 (thought leadership) yang bersifat makro, tetap pilih produk yang paling relevan secara tidak langsung, tapi pastikan alasannya genuine, bukan default otomatis.
 
@@ -260,6 +274,12 @@ Pilih Keyword
 Tentukan Judul
 ↓
 Menulis Artikel
+↓
+Ambil Category ID (Langkah 6)
+↓
+Kirim Draft ke Website (Langkah 7)
+↓
+Arsip ke ClickUp Doc (Langkah 8)
 ```
 
 **Jika hasil riset tidak menemukan isu yang layak:**
@@ -373,17 +393,76 @@ Tipografi:
 
 ---
 
-### LANGKAH 6 — Simpan ke ClickUp
+### LANGKAH 6 — Ambil & Petakan Website Category ke ID
 
-**A. ClickUp Doc** — space_id: "90166878819"
-Gunakan clickup_create_document (visibility PUBLIC agar tidak gagal karena izin) lalu clickup_create_document_page dengan isi artikel (termasuk blok Output Metadata) + arahan cover.
+Sebelum mengirim draft ke website, ambil daftar kategori (publik, tanpa auth):
+`GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 
-**B. ClickUp Task** — list_id: "901612151010"
-- name: "[ARTIKEL] " + judul
-- description: ringkasan + link Doc + Pillar + Website Category + Topic Cluster + Persona (jika Pilar 4) + Target Keyword + Search Intent + produk CTA + frasa CTA + arahan cover
-- assignees: [294739100] (Nathania Kinanti)
-- status: "to do"
-- due_date: H+1
+Cocokkan Website Category yang dipilih di Langkah 3 dengan field `name` dari respons
+(case-insensitive) untuk mendapatkan `id`. Simpan sebagai category_id.
+
+Aturan:
+- Jika ada kategori yang cocok → sertakan `category_ids: ["<id>"]` di body.
+- Jika Website Category yang diinginkan TIDAK ADA di daftar → JANGAN dipaksakan; kirim
+  body TANPA field `category_ids` (biarkan admin mengisi kategori saat review).
+
+---
+
+### LANGKAH 7 — Kirim Draft ke Website (Automation API)
+
+Susun isi artikel sebagai HTML bersih: `<p>`, `<h2>`, `<h3>`, `<ul>/<li>`, `<strong>`, `<a>`.
+Blok Output Metadata dan arahan cover TIDAK dimasukkan ke `content` (itu hanya untuk ClickUp Doc).
+
+Kirim HTTP POST:
+```
+POST {API_BASE}/api/automations/articles
+Headers:
+  X-API-Key: {AUTOMATION_API_KEY}
+  Idempotency-Key: article-{YYYY-MM-DD}   (tanggal WIB hari ini)
+  Content-Type: application/json
+Body (JSON):
+{
+  "title": "<JUDUL, max 60 karakter>",
+  "content": "<isi artikel dalam HTML>",
+  "excerpt": "<ringkasan 1-2 kalimat>",
+  "seo_title": "<Title Tag, max 60 karakter>",
+  "meta_description": "<META DESCRIPTION 150-160 karakter>",
+  "focus_keyphrase": "<Target Keyword>",
+  "category_ids": ["<category_id dari Langkah 6>"]   // HILANGKAN field ini jika kategori tidak ada
+}
+```
+
+Pemetaan output artikel → field API:
+- [JUDUL]             → `title` (dan `seo_title`)
+- Isi artikel (HTML)  → `content`
+- Ringkasan pembuka   → `excerpt`
+- [META DESCRIPTION]  → `meta_description`
+- Target Keyword      → `focus_keyphrase`
+- Website Category id → `category_ids` (opsional; lihat Langkah 6)
+
+Respons sukses `201` → `{ data: { id, slug, status:"draft", review_url, clickup_task_id, duplicated:false } }`.
+Jika respons `200` dengan `duplicated:true` → draft untuk hari ini SUDAH ada; jangan kirim ulang.
+Catat `slug` dan `review_url` untuk ringkasan.
+
+Catatan:
+- `content` WAJIB HTML (backend mensanitasi otomatis; tag tak aman dibuang).
+- URL Slug dari Langkah 4 hanya saran; website meng-generate slug dari judul (admin bisa ubah saat review).
+- Thumbnail tidak dikirim; admin menambahkannya saat review (sudah tercantum di email & task backend).
+
+---
+
+### LANGKAH 8 — Arsip ke ClickUp Doc
+
+**ClickUp Doc** — space_id: "90166878819"
+Gunakan clickup_create_document (visibility PUBLIC agar tidak gagal karena izin) lalu
+clickup_create_document_page dengan isi artikel lengkap (termasuk blok Output Metadata) +
+arahan cover Langkah 5. Doc ini menjadi arsip konten + brief desain cover.
+
+Catatan: task review "review & publish di web" TIDAK dibuat manual dari skill lagi — task
+itu dibuat OTOMATIS oleh backend (assignee admin sosmed, berisi `review_url`) saat draft masuk
+di Langkah 7. Jangan membuat task review manual agar tidak dobel. Jika masih butuh task khusus
+"desain cover", boleh buat 1 task terpisah untuk itu (list_id: "901612151010", assignee
+[294739100] Nathania Kinanti, status "to do", due H+1) — tapi bukan task review web.
 
 ---
 
@@ -418,7 +497,13 @@ PRODUK CTA: [produk dari 9 produk] - [alasan genuine, bukan default]
 FRASA CTA: [frasa] - [alasan]
 PANJANG: [kata] kata | ESTIMASI BACA: [X] menit
 
-ClickUp Doc: tersimpan
-ClickUp Task: assigned ke Nathania Kinanti, due besok
+KIRIM KE WEBSITE (Automation API):
+- Website Category dipakai: [nama] → id [category_id / "tidak ada di daftar → dikosongkan"]
+- Status kirim: [201 dibuat / 200 duplicated]
+- Slug: [slug] | Review URL: [review_url]
+- ClickUp task id (dibuat backend): [clickup_task_id / null]
+
+ClickUp Doc: tersimpan (arsip artikel + arahan cover)
+Task review web: dibuat otomatis oleh backend (assignee admin sosmed)
 Arahan Cover: prompt AI + tipografi Montserrat siap
 ```
