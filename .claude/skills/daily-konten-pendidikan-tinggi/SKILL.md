@@ -29,6 +29,8 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   (Ganti ke domain produksi saat sudah live.)
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
+- Ambil tags (publik, tanpa auth):
+  `GET {API_BASE}/api/tags/listPublic?type=article&limit=100`
 - Upload cover (gambar) → dapat file id untuk thumbnail:
   `POST {API_BASE}/api/automations/files` (header `X-API-Key`)
   - multipart: field `file` = gambar (PNG/JPG/WEBP, maks 10MB), ATAU
@@ -37,13 +39,19 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   `POST {API_BASE}/api/automations/articles`
   Headers:
   - `X-API-Key: {AUTOMATION_API_KEY}` (rahasia; simpan sebagai secret di scheduler)
-  - `Idempotency-Key: article-{YYYY-MM-DD}` (tanggal WIB hari ini; menjaga 1 artikel/hari)
+  - `Idempotency-Key: article-{YYYY-MM-DD}-{NN}` (tanggal WIB + angka urut 2 digit; lihat aturan di bawah)
   - `Content-Type: application/json`
 
+**Aturan Idempotency-Key (WAJIB):** Format `article-{YYYY-MM-DD}-{NN}` dengan `{NN}` = angka urut
+harian mulai `01`. **Tentukan sekali di awal run** dan pakai konsisten untuk semua percobaan di
+run itu (retry pakai key sama → aman, tidak dobel). Default automation harian cukup `-01`. Backend
+membatasi maksimal artikel automation per hari (bukan lewat key), jadi angka ini hanya penanda unik
+per submission; kalau perlu submit lagi di hari sama (mis. uji), naikkan ke `-02`, `-03`, dst.
+
 **Alur pengiriman (wajib urut):**
-buat artikel (Langkah 0–4) → ambil kategori (Langkah 5) → buat & upload cover (Langkah 6) →
-kirim draft + thumbnail_id (Langkah 7) → backend otomatis buat task ClickUp (deskripsi berisi
-arahan cover) → arsip ClickUp Doc (Langkah 8).
+buat artikel (Langkah 0–4) → ambil kategori & tags (Langkah 5) → buat & upload cover (Langkah 6) →
+kirim draft + thumbnail_id + category_ids + tag_ids (Langkah 7) → backend otomatis buat task ClickUp
+(deskripsi berisi arahan cover) → arsip ClickUp Doc (Langkah 8).
 
 **ATURAN WAJIB — CTA setiap artikel:** Setiap artikel yang ditulis, di pilar manapun (1, 2, 3, atau 4), WAJIB diakhiri dengan CTA yang terhubung ke salah satu dari 9 produk Mataer Digital di atas. Namun pilih produk yang memang menjadi solusi utama dari masalah/topik artikel, jangan memaksakan CTA ke produk yang hubungannya lemah hanya karena produk itu paling sering dipakai. Contoh: artikel tentang AI dalam pendidikan tinggi tidak selalu harus diarahkan ke SIAKAD kalau ada produk lain (misalnya LMS atau Perangkat Smart Classroom) yang koneksinya lebih natural dengan topik tersebut. Untuk Pilar 1 (thought leadership) yang bersifat makro, tetap pilih produk yang paling relevan secara tidak langsung, tapi pastikan alasannya genuine, bukan default otomatis.
 
@@ -284,11 +292,11 @@ Tentukan Judul
 ↓
 Menulis Artikel
 ↓
-Ambil Category ID (Langkah 5)
+Ambil Category & Tags ID (Langkah 5)
 ↓
 Buat & Upload Cover → thumbnail_id (Langkah 6)
 ↓
-Kirim Draft ke Website + thumbnail_id + cover_brief (Langkah 7)
+Kirim Draft + thumbnail_id + category_ids + tag_ids + cover_brief (Langkah 7)
 ↓
 Arsip ke ClickUp Doc (Langkah 8)
 ```
@@ -386,18 +394,29 @@ Kalimat 3: [frasa CTA] — kunjungi mataerdigital.com atau hubungi 0877-5889-728
 
 ---
 
-### LANGKAH 5 — Ambil & Petakan Website Category ke ID
+### LANGKAH 5 — Ambil & Petakan Category + Tags ke ID
 
-Ambil daftar kategori (publik, tanpa auth):
+**A. Category.** Ambil daftar kategori (publik, tanpa auth):
 `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 
 Cocokkan Website Category yang dipilih di Langkah 3 dengan field `name` dari respons
 (case-insensitive) untuk mendapatkan `id`. Simpan sebagai category_id.
 
-Aturan:
+Aturan category:
 - Jika ada kategori yang cocok → sertakan `category_ids: ["<id>"]` di body Langkah 7.
 - Jika Website Category yang diinginkan TIDAK ADA di daftar → JANGAN dipaksakan; kirim
   body TANPA field `category_ids` (biarkan admin mengisi kategori saat review).
+
+**B. Tags.** Ambil daftar tag (publik, tanpa auth):
+`GET {API_BASE}/api/tags/listPublic?type=article&limit=100`
+
+Dari daftar tag yang ADA di database, pilih yang benar-benar **relevan** dengan Topic Cluster /
+keyword / isi artikel hari ini (boleh lebih dari satu). Ambil `id`-nya.
+
+Aturan tags:
+- Sertakan hanya tag yang **sudah ada di database** dan relevan → `tag_ids: ["<id>", ...]`.
+- **JANGAN membuat/menebak** tag baru. Kalau tidak ada tag yang relevan di daftar → kirim body
+  TANPA field `tag_ids` (biarkan admin menambah tag saat review).
 
 ---
 
@@ -440,7 +459,7 @@ Kirim HTTP POST:
 POST {API_BASE}/api/automations/articles
 Headers:
   X-API-Key: {AUTOMATION_API_KEY}
-  Idempotency-Key: article-{YYYY-MM-DD}   (tanggal WIB hari ini)
+  Idempotency-Key: article-{YYYY-MM-DD}-{NN}   (tanggal WIB + angka urut 2 digit, mis. -01)
   Content-Type: application/json
 Body (JSON):
 {
@@ -451,7 +470,8 @@ Body (JSON):
   "meta_description": "<META DESCRIPTION 150-160 karakter>",
   "focus_keyphrase": "<Target Keyword>",
   "thumbnail_id": "<file id dari Langkah 6C>",      // HILANGKAN jika cover gagal
-  "category_ids": ["<category_id dari Langkah 5>"], // HILANGKAN jika kategori tidak ada
+  "category_ids": ["<category_id dari Langkah 5A>"], // HILANGKAN jika kategori tidak ada
+  "tag_ids": ["<tag_id dari Langkah 5B>", ...],      // HILANGKAN jika tidak ada tag relevan
   "cover_brief": "<arahan desain cover dari Langkah 6A: template, prompt AI, tipografi>"
 }
 ```
@@ -463,8 +483,13 @@ Pemetaan output artikel → field API:
 - [META DESCRIPTION]  → `meta_description`
 - Target Keyword      → `focus_keyphrase`
 - Cover file id       → `thumbnail_id` (dari Langkah 6C; opsional)
-- Website Category id → `category_ids` (opsional; lihat Langkah 5)
+- Website Category id → `category_ids` (opsional; lihat Langkah 5A)
+- Tag id yang relevan → `tag_ids` (opsional; lihat Langkah 5B — HANYA tag yang sudah ada di DB)
 - Arahan cover        → `cover_brief` (masuk ke deskripsi task ClickUp)
+
+**PENTING:** Jangan lupa sertakan `category_ids`, `tag_ids`, dan `thumbnail_id` bila tersedia —
+jangan kirim hanya title/content/seo. Kirim field yang ada; kosongkan hanya yang benar-benar
+tidak tersedia (kategori tak cocok / tak ada tag relevan / cover gagal).
 
 Respons sukses `201` → `{ data: { id, slug, status:"draft", review_url, clickup_task_id, duplicated:false } }`.
 Jika respons `200` dengan `duplicated:true` → draft untuk hari ini SUDAH ada; jangan kirim ulang.
@@ -525,7 +550,9 @@ COVER:
 - Upload cover: [thumbnail_id / "gagal → draft tanpa thumbnail"]
 
 KIRIM KE WEBSITE (Automation API):
+- Idempotency-Key: article-[YYYY-MM-DD]-[NN]
 - Website Category dipakai: [nama] → id [category_id / "tidak ada di daftar → dikosongkan"]
+- Tags dipakai: [nama tag, ...] → id [tag_ids / "tidak ada tag relevan → dikosongkan"]
 - Status kirim: [201 dibuat / 200 duplicated]
 - Slug: [slug] | Review URL: [review_url]
 - Thumbnail terkirim: [ya (thumbnail_id) / tidak]
