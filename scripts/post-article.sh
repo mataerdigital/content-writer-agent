@@ -1,16 +1,4 @@
-#!/usr/bin/env bash
-# Posts a generated article draft to the automation ingestion endpoint.
-# Contract: docs/automation-article-spec.md, Bagian 6.
-#
-# Usage: scripts/post-article.sh <article.json>
-#
-# article.json fields (see spec Bagian 6):
-#   title, content, excerpt (required)
-#   category_ids, tag_ids, seo_title, meta_description, focus_keyphrase, thumbnail_url (optional)
-#
-# Required env vars:
-#   AUTOMATION_API_KEY       sent as X-API-Key
-#   AUTOMATION_API_BASE_URL  e.g. https://dev.mataerdigital.com
+
 
 set -euo pipefail
 

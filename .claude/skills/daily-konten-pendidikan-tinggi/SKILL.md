@@ -29,12 +29,21 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   (Ganti ke domain produksi saat sudah live.)
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
+- Upload cover (gambar) → dapat file id untuk thumbnail:
+  `POST {API_BASE}/api/automations/files` (header `X-API-Key`)
+  - multipart: field `file` = gambar (PNG/JPG/WEBP, maks 10MB), ATAU
+  - JSON: `{ "image_url": "<url gambar>" }`
 - Kirim draft:
   `POST {API_BASE}/api/automations/articles`
   Headers:
   - `X-API-Key: {AUTOMATION_API_KEY}` (rahasia; simpan sebagai secret di scheduler)
   - `Idempotency-Key: article-{YYYY-MM-DD}` (tanggal WIB hari ini; menjaga 1 artikel/hari)
   - `Content-Type: application/json`
+
+**Alur pengiriman (wajib urut):**
+buat artikel (Langkah 0–4) → ambil kategori (Langkah 5) → buat & upload cover (Langkah 6) →
+kirim draft + thumbnail_id (Langkah 7) → backend otomatis buat task ClickUp (deskripsi berisi
+arahan cover) → arsip ClickUp Doc (Langkah 8).
 
 **ATURAN WAJIB — CTA setiap artikel:** Setiap artikel yang ditulis, di pilar manapun (1, 2, 3, atau 4), WAJIB diakhiri dengan CTA yang terhubung ke salah satu dari 9 produk Mataer Digital di atas. Namun pilih produk yang memang menjadi solusi utama dari masalah/topik artikel, jangan memaksakan CTA ke produk yang hubungannya lemah hanya karena produk itu paling sering dipakai. Contoh: artikel tentang AI dalam pendidikan tinggi tidak selalu harus diarahkan ke SIAKAD kalau ada produk lain (misalnya LMS atau Perangkat Smart Classroom) yang koneksinya lebih natural dengan topik tersebut. Untuk Pilar 1 (thought leadership) yang bersifat makro, tetap pilih produk yang paling relevan secara tidak langsung, tapi pastikan alasannya genuine, bukan default otomatis.
 
@@ -275,9 +284,11 @@ Tentukan Judul
 ↓
 Menulis Artikel
 ↓
-Ambil Category ID (Langkah 6)
+Ambil Category ID (Langkah 5)
 ↓
-Kirim Draft ke Website (Langkah 7)
+Buat & Upload Cover → thumbnail_id (Langkah 6)
+↓
+Kirim Draft ke Website + thumbnail_id + cover_brief (Langkah 7)
 ↓
 Arsip ke ClickUp Doc (Langkah 8)
 ```
@@ -375,43 +386,54 @@ Kalimat 3: [frasa CTA] — kunjungi mataerdigital.com atau hubungi 0877-5889-728
 
 ---
 
-### LANGKAH 5 — Buat Arahan Desain Cover
+### LANGKAH 5 — Ambil & Petakan Website Category ke ID
 
-Template: Gunakan template Khairi (tersimpan di folder desain tim)
-Ukuran: 1920 x 1080 px
-
-**ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
-
-Prompt AI (sesuaikan bagian visual dengan topik artikel):
-"Hero banner for higher education article cover. Large white negative space on top-left 40% area. Modern Indonesian campus in background. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover sebelumnya]. Premium corporate design, minimalist, white and blue color scheme, cinematic lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover style, Times Higher Education editorial style, ultra high resolution, 1920x1080, no text, no logo, headline area intentionally left blank."
-
-Tipografi:
-- Baris 1: Montserrat Bold — [frasa terkuat dari judul]
-- Baris 2: Montserrat Regular — [pelengkap judul]
-- Posisi: area kiri atas (40% area negatif)
-- Warna: putih atau biru tua
-
----
-
-### LANGKAH 6 — Ambil & Petakan Website Category ke ID
-
-Sebelum mengirim draft ke website, ambil daftar kategori (publik, tanpa auth):
+Ambil daftar kategori (publik, tanpa auth):
 `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 
 Cocokkan Website Category yang dipilih di Langkah 3 dengan field `name` dari respons
 (case-insensitive) untuk mendapatkan `id`. Simpan sebagai category_id.
 
 Aturan:
-- Jika ada kategori yang cocok → sertakan `category_ids: ["<id>"]` di body.
+- Jika ada kategori yang cocok → sertakan `category_ids: ["<id>"]` di body Langkah 7.
 - Jika Website Category yang diinginkan TIDAK ADA di daftar → JANGAN dipaksakan; kirim
   body TANPA field `category_ids` (biarkan admin mengisi kategori saat review).
+
+---
+
+### LANGKAH 6 — Buat Cover Article & Upload
+
+**A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
+- Template: Gunakan template Khairi (tersimpan di folder desain tim)
+- Ukuran: 1920 x 1080 px
+- **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
+- Prompt AI (sesuaikan bagian visual dengan topik artikel):
+  "Hero banner for higher education article cover. Large white negative space on top-left 40% area. Modern Indonesian campus in background. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover sebelumnya]. Premium corporate design, minimalist, white and blue color scheme, cinematic lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover style, Times Higher Education editorial style, ultra high resolution, 1920x1080, no text, no logo, headline area intentionally left blank."
+- Tipografi:
+  - Baris 1: Montserrat Bold — [frasa terkuat dari judul]
+  - Baris 2: Montserrat Regular — [pelengkap judul]
+  - Posisi: area kiri atas (40% area negatif)
+  - Warna: putih atau biru tua
+
+**B. Generate gambar cover** memakai prompt AI di atas (via tool image-generation yang tersedia). Hasilkan gambar 1920x1080 (PNG/JPG/WEBP).
+
+**C. Upload cover** → dapatkan file id untuk thumbnail:
+```
+POST {API_BASE}/api/automations/files
+Headers: X-API-Key: {AUTOMATION_API_KEY}
+- multipart: field "file" = gambar cover hasil generate, ATAU
+- JSON: { "image_url": "<url gambar hasil generate>" }
+```
+Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
+
+Jika generate/upload cover gagal, lanjut tanpa thumbnail (kirim draft tanpa `thumbnail_id`); admin akan menambah cover saat review sesuai `cover_brief` di task ClickUp.
 
 ---
 
 ### LANGKAH 7 — Kirim Draft ke Website (Automation API)
 
 Susun isi artikel sebagai HTML bersih: `<p>`, `<h2>`, `<h3>`, `<ul>/<li>`, `<strong>`, `<a>`.
-Blok Output Metadata dan arahan cover TIDAK dimasukkan ke `content` (itu hanya untuk ClickUp Doc).
+Blok Output Metadata dan arahan cover TIDAK dimasukkan ke `content` (arahan cover dikirim di field `cover_brief`).
 
 Kirim HTTP POST:
 ```
@@ -428,7 +450,9 @@ Body (JSON):
   "seo_title": "<Title Tag, max 60 karakter>",
   "meta_description": "<META DESCRIPTION 150-160 karakter>",
   "focus_keyphrase": "<Target Keyword>",
-  "category_ids": ["<category_id dari Langkah 6>"]   // HILANGKAN field ini jika kategori tidak ada
+  "thumbnail_id": "<file id dari Langkah 6C>",      // HILANGKAN jika cover gagal
+  "category_ids": ["<category_id dari Langkah 5>"], // HILANGKAN jika kategori tidak ada
+  "cover_brief": "<arahan desain cover dari Langkah 6A: template, prompt AI, tipografi>"
 }
 ```
 
@@ -438,16 +462,17 @@ Pemetaan output artikel → field API:
 - Ringkasan pembuka   → `excerpt`
 - [META DESCRIPTION]  → `meta_description`
 - Target Keyword      → `focus_keyphrase`
-- Website Category id → `category_ids` (opsional; lihat Langkah 6)
+- Cover file id       → `thumbnail_id` (dari Langkah 6C; opsional)
+- Website Category id → `category_ids` (opsional; lihat Langkah 5)
+- Arahan cover        → `cover_brief` (masuk ke deskripsi task ClickUp)
 
 Respons sukses `201` → `{ data: { id, slug, status:"draft", review_url, clickup_task_id, duplicated:false } }`.
 Jika respons `200` dengan `duplicated:true` → draft untuk hari ini SUDAH ada; jangan kirim ulang.
-Catat `slug` dan `review_url` untuk ringkasan.
+Backend OTOMATIS membuat task ClickUp review (assignee admin sosmed; deskripsi berisi review_url + arahan cover). Catat `slug` dan `review_url` untuk ringkasan.
 
 Catatan:
 - `content` WAJIB HTML (backend mensanitasi otomatis; tag tak aman dibuang).
 - URL Slug dari Langkah 4 hanya saran; website meng-generate slug dari judul (admin bisa ubah saat review).
-- Thumbnail tidak dikirim; admin menambahkannya saat review (sudah tercantum di email & task backend).
 
 ---
 
@@ -456,13 +481,11 @@ Catatan:
 **ClickUp Doc** — space_id: "90166878819"
 Gunakan clickup_create_document (visibility PUBLIC agar tidak gagal karena izin) lalu
 clickup_create_document_page dengan isi artikel lengkap (termasuk blok Output Metadata) +
-arahan cover Langkah 5. Doc ini menjadi arsip konten + brief desain cover.
+arahan cover Langkah 6A. Doc ini menjadi arsip konten + brief desain cover.
 
 Catatan: task review "review & publish di web" TIDAK dibuat manual dari skill lagi — task
-itu dibuat OTOMATIS oleh backend (assignee admin sosmed, berisi `review_url`) saat draft masuk
-di Langkah 7. Jangan membuat task review manual agar tidak dobel. Jika masih butuh task khusus
-"desain cover", boleh buat 1 task terpisah untuk itu (list_id: "901612151010", assignee
-[294739100] Nathania Kinanti, status "to do", due H+1) — tapi bukan task review web.
+itu dibuat OTOMATIS oleh backend (assignee admin sosmed, deskripsi berisi `review_url` + arahan
+cover) saat draft masuk di Langkah 7. Jangan membuat task review manual agar tidak dobel.
 
 ---
 
@@ -497,13 +520,18 @@ PRODUK CTA: [produk dari 9 produk] - [alasan genuine, bukan default]
 FRASA CTA: [frasa] - [alasan]
 PANJANG: [kata] kata | ESTIMASI BACA: [X] menit
 
+COVER:
+- Generate cover: [berhasil / gagal]
+- Upload cover: [thumbnail_id / "gagal → draft tanpa thumbnail"]
+
 KIRIM KE WEBSITE (Automation API):
 - Website Category dipakai: [nama] → id [category_id / "tidak ada di daftar → dikosongkan"]
 - Status kirim: [201 dibuat / 200 duplicated]
 - Slug: [slug] | Review URL: [review_url]
+- Thumbnail terkirim: [ya (thumbnail_id) / tidak]
 - ClickUp task id (dibuat backend): [clickup_task_id / null]
 
 ClickUp Doc: tersimpan (arsip artikel + arahan cover)
-Task review web: dibuat otomatis oleh backend (assignee admin sosmed)
+Task review web: dibuat otomatis oleh backend (deskripsi berisi review_url + arahan cover)
 Arahan Cover: prompt AI + tipografi Montserrat siap
 ```
