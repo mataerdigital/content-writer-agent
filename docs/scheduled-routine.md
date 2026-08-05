@@ -16,7 +16,7 @@ Endpoint ini idempotent per hari kerja (key `article-YYYY-MM-DD` WIB) — jangan
 | Env | Keterangan |
 |---|---|
 | `AUTOMATION_API_KEY` | API key untuk header `X-API-Key` |
-| `AUTOMATION_API_BASE_URL` | Base URL backend, mis. `https://dev.mataerdigital.com` (tanpa trailing slash atau path) |
+| `AUTOMATION_API_BASE_URL` | Base URL backend, mis. `https://api-dev.mataerdigital.com` (tanpa trailing slash atau path; jangan pakai tunnel lokal developer) |
 
 ## Catatan gap
 
