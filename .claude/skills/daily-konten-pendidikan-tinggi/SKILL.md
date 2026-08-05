@@ -436,17 +436,26 @@ tapi diagonal cutout, logo, dan typography judul WAJIB di-render langsung sebaga
 via Canva MCP `edit-design`. Ini menggantikan pola cover lama (garis vertikal 40%, logo/judul cuma dideskripsikan
 di brief text untuk digambar manual oleh admin).
 
-**A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
+**A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp).
+Mengikuti template resmi "Khairi" (contoh dasar: logo + tagline + dekorasi + pill URL, lihat referensi desain tim) —
+elemen berikut WAJIB semua ada, bukan cuma sebagian:
 - Ukuran: 1920 x 1080 px
-- **Layout wajib:** diagonal white cutout di sisi kiri, ±30% lebar rata-rata (bukan vertikal 50%, bukan 40% lurus).
-  Sudut miring: lebar di atas ~34% (≈650px dari 1920px), menyempit ke ~22% di bawah (≈420px). Foto latar mengisi
-  sisi kanan yang tidak tertutup diagonal.
-- Logo Mataer Edutech (asli, bukan hasil AI-generate) di pojok kiri atas area putih.
-- Typography ter-render langsung di atas gambar (bukan cuma brief teks untuk admin): baris kicker italic kecil
-  (label singkat, mis. nama Website Category atau Pilar) + judul artikel bold besar di bawahnya, rata kiri,
-  keduanya di dalam area putih.
+- **Layout foto & teks:** diagonal white cutout di sisi kiri, ±30% lebar rata-rata (bukan vertikal 50%, bukan 40%
+  lurus). Sudut miring: lebar di atas ~34% (≈650px dari 1920px), menyempit ke ~22% di bawah (≈420px). Foto latar
+  mengisi sisi kanan yang tidak tertutup diagonal.
+- **Logo** Mataer Edutech (asli, bukan hasil AI-generate) di pojok kiri atas area putih.
+- **Tagline** "Empowering Education Excellence" di pojok kanan atas, 3 warna terpisah: "Empowering" hitam/abu gelap,
+  "Education" biru brand, "Excellence" hitam/abu gelap — bold, ukuran kecil (±26px).
+- **Dekorasi blob** lengkung biru muda lembut (soft wave/blob, opacity ±0.45-0.55, 2 lapis warna beda intensitas)
+  di pojok kiri-bawah dan kanan-bawah kanvas, sebagian keluar dari tepi kanvas supaya cuma lengkungnya yang terlihat.
+- **Pill URL** "www.mataerdigital.com" di area bawah tengah: rounded rectangle biru muda pucat (corner_rounding
+  penuh/kapsul), teks "www." biru brand + underline, "mataerdigital.com" hitam bold, keduanya bold.
+- **Typography judul** ter-render langsung di atas gambar (bukan cuma brief teks untuk admin, dan bukan versi
+  template kosong): baris kicker italic kecil (label singkat, mis. nama Website Category atau Pilar) + judul
+  artikel bold besar di bawahnya, rata kiri, keduanya di dalam area putih diagonal.
 - **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual foto latar
-  terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
+  terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar). Logo/tagline/blob/pill TETAP
+  sama tiap artikel (elemen brand baku) — yang divariasikan hanya foto latar dan typography judul.
 - Prompt AI untuk foto latar (sesuaikan bagian visual dengan topik artikel; TANPA teks/logo — itu ditambahkan lewat
   kompositing di Langkah 6B-6C, bukan lewat prompt):
   "Photorealistic hero photograph, wide angle. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover
@@ -454,30 +463,44 @@ di brief text untuk digambar manual oleh admin).
   shallow depth of field, McKinsey report style, Times Higher Education editorial style, ultra high resolution,
   cinematic, no text, no logo, no graphic overlays."
 
-**B. Generate & komposit cover via Canva MCP** (urutan tool call):
+**B. Generate & komposit cover via Canva MCP** (urutan tool call; semua koordinat dalam kanvas 1920x1080):
 1. `generate-design` (design_type `desktop_wallpaper`) dengan prompt foto latar di atas → ambil salah satu `candidate_id`.
 2. `create-design-from-candidate` → dapat `design_id` (kanvas 1920x1080 tersimpan, siap diedit).
-3. Siapkan asset logo (sekali per sesi, reuse kalau masih ada): logo master ada di Canva design
-   **"LOGO MATAER DIGITAL"** (`DAFyXcPXg0I`), page 6 = lockup biru/hijau bersih di atas background polos.
-   - `export-design` page 6 format png transparent_background:true → dapat URL (domain `export-download.canva.com`,
-     kadang tidak bisa diunduh langsung tergantung kebijakan jaringan sesi — tidak masalah, tidak perlu diunduh manual).
-   - Kalau perlu crop rapat: unduh via domain `media.canva.com` (thumbnail dari `read-design` thumbnails, biasanya
-     tidak diblokir kebijakan jaringan meski `export-download.canva.com`/`design.canva.ai` diblokir), crop bounding
-     box logo (background non-transparan konsisten, mis. abu-abu), simpan PNG transparan.
-   - Upload PNG logo ke `POST {API_BASE}/api/automations/files` (multipart, dapat URL publik di
+3. Siapkan asset logo (sekali per sesi, reuse kalau masih ada asset_id valid dari sesi sebelumnya — kalau invalid/
+   asset hilang, generate ulang dari sumber asli): logo master ada di Canva design **"LOGO MATAER DIGITAL"**
+   (`DAFyXcPXg0I`), page 6 = lockup biru/hijau bersih di atas background polos.
+   - `read-design` thumbnails pada page 6 → dapat URL domain `media.canva.com` (biasanya tidak diblokir kebijakan
+     jaringan meski `export-download.canva.com`/`design.canva.ai` diblokir) → unduh, crop rapat bounding box logo
+     (background non-transparan konsisten, mis. abu-abu, dianggap background lalu dibuat transparan).
+   - Upload PNG logo hasil crop ke `POST {API_BASE}/api/automations/files` (multipart, dapat URL publik di
      `mataer-digital.is3.cloudhost.id`) → lalu `upload-asset-from-url` (Canva) dengan URL publik itu → dapat
      `asset_id` Canva yang bisa dipakai berulang kali (URL publik milik web sendiri, bukan link privat orang lain,
-     jadi aman dipakai untuk `upload-asset-from-url`).
+     jadi aman dipakai untuk `upload-asset-from-url`; jangan pakai URL `export-download.canva.com` langsung ke
+     `upload-asset-from-url`, pernah gagal `fetch_failed`).
 4. `read-design` dengan `open_transaction: true` pada `design_id` dari langkah 2 → dapat `transaction_id` dan
    `page_id` halaman 1.
-5. `edit-design` (operations dalam satu page, `finalize: "keep_open"`):
+5. `edit-design` (operations dalam satu page, `finalize: "keep_open"`) — urutan layer dari belakang ke depan:
+   - `insert_shape` x4 (blob dekoratif, di-insert SEBELUM diagonal shape supaya diagonal/logo/teks tetap di atasnya):
+     lingkaran via path `"M {cx-r},{cy} A{r},{r} 0 1,0 {cx+r},{cy} A{r},{r} 0 1,0 {cx-r},{cy} Z"`, `left/top:0,0`,
+     `width/height:1920,1080`, `view_box_width/height:1920,1080`. Contoh 4 blob (2 lapis x 2 pojok):
+     kiri-bawah `cx:100,cy:1150,r:350` warna `#E4EEFC` opacity `0.55` + `cx:-50,cy:1000,r:250` warna `#C9DFFA`
+     opacity `0.45`; kanan-bawah `cx:1850,cy:1200,r:450` warna `#E4EEFC` opacity `0.55` + `cx:2000,cy:1050,r:300`
+     warna `#C9DFFA` opacity `0.45`.
    - `insert_shape`: polygon putih diagonal. `path`: `"M0,0 L650,0 L420,1080 L0,1080 Z"`, `left/top: 0,0`,
      `width/height: 1920,1080`, `view_box_width/height: 1920,1080`, `color: "#FFFFFF"`.
-   - `insert_fill`: logo, `asset_id` dari langkah 3, posisi kira-kira `left:70 top:60 width:300` (jaga rasio).
+   - `insert_fill`: logo, `asset_id` dari langkah 3, posisi `left:70 top:60 width:300 height:56` (jaga rasio ~5.3:1).
+   - `add_text` x3 (tagline, tiga elemen terpisah untuk warna beda): "Empowering " `left:1430 top:40 width:170`,
+     "Education " `left:1595 top:40 width:155`, "Excellence" `left:1745 top:40 width:155`.
    - `add_text` x2: kicker (label singkat) dan judul artikel, posisi rata kiri di dalam area putih
      (mis. kicker `left:75 top:260 width:480`, judul `left:75 top:320 width:490`).
-   - `format_text`: kicker → `font_style: italic`, `font_size` ±32, warna biru brand (mis. `#1E4FA3`).
-     Judul → `font_weight: bold`, `font_size` ±56, warna navy gelap (mis. `#0B1F3A`).
+   - `insert_shape`: pill URL, rounded rect kapsul. `left/top:775,975`, `width/height:365,75`,
+     `view_box_width/height:365,75`, `path:"M37.5,0 L327.5,0 A37.5,37.5 0 0 1 327.5,75 L37.5,75 A37.5,37.5 0 0 1 37.5,0 Z"`,
+     `color:"#CFE0FB"`.
+   - `add_text` x2: "www." `left:815 top:997 width:70`, "mataerdigital.com" `left:880 top:997 width:230`.
+   - `format_text` untuk semua text di atas: tagline 3 kata → `font_size:26 font_weight:bold`, warna "Empowering"/
+     "Excellence" `#111111`, "Education" `#1E4FA3`. Kicker → `font_style:italic font_size:32 color:#1E4FA3`.
+     Judul → `font_weight:bold font_size:56 color:#0B1F3A line_height:1.15`. "www." → `font_size:26 font_weight:bold
+     color:#1E4FA3 decoration:underline`. "mataerdigital.com" → `font_size:26 font_weight:bold color:#111111`.
    - Cek thumbnail hasil tiap kali edit sebelum lanjut (bandingkan before/after) sebelum commit.
 6. `edit-design` dengan `finalize: "commit"` (operations kosong) → permanen.
 7. `export-design` format `jpg`, `width/height: 1920/1080` → dapat URL final.
