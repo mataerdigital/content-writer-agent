@@ -434,18 +434,23 @@ Aturan tags:
   - Posisi: area kiri atas (40% area negatif)
   - Warna: putih atau biru tua
 
-**B. Generate gambar cover** memakai prompt AI di atas (via tool image-generation yang tersedia). Hasilkan gambar 1920x1080 (PNG/JPG/WEBP).
+**B. Generate cover via Canva MCP** (tool `mcp__Canva__*`, connector Canva harus tersambung di environment yang menjalankan skill ini):
+1. `generate-design` dengan `design_type: "desktop_wallpaper"` (rasio 16:9, paling dekat ke 1920x1080) dan `query` = prompt AI dari bagian A di atas (terjemahkan/gabungkan ke bahasa yang jelas untuk Canva, tetap pertahankan instruksi "jangan tambahkan teks apapun di desain" karena tipografi judul ditambahkan terpisah oleh admin).
+2. Pilih satu kandidat terbaik dari hasil (`generated_designs[].candidate_id`), lalu `create-design-from-candidate` (pakai `job_id` + `candidate_id` yang sama) untuk mendapatkan `design_id` permanen.
+3. `get-export-formats` untuk `design_id` tsb, pastikan `png` didukung.
+4. `export-design` dengan `format: { type: "png", width: 1920, height: 1080 }` → dapatkan URL PNG hasil export (presigned URL Canva, berlaku terbatas ~24 jam).
 
 **C. Upload cover** → dapatkan file id untuk thumbnail:
 ```
 POST {API_BASE}/api/automations/files
 Headers: X-API-Key: {AUTOMATION_API_KEY}
-- multipart: field "file" = gambar cover hasil generate, ATAU
-- JSON: { "image_url": "<url gambar hasil generate>" }
+Content-Type: application/json
+Body: { "image_url": "<URL PNG hasil export-design Canva di Langkah 6B>" }
 ```
+Kirim sebagai JSON `image_url`, BUKAN multipart file — backend Mataer yang fetch gambarnya sendiri dari URL tsb secara server-side, jadi tidak perlu download file-nya dulu (domain Canva mungkin tidak bisa diakses langsung dari environment yang menjalankan skill).
 Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
-Jika generate/upload cover gagal, lanjut tanpa thumbnail (kirim draft tanpa `thumbnail_id`); admin akan menambah cover saat review sesuai `cover_brief` di task ClickUp.
+**Fallback:** jika connector Canva tidak tersambung, atau salah satu langkah 6B/6C gagal (generate/export/upload), lanjut tanpa thumbnail (kirim draft tanpa `thumbnail_id`); admin akan menambah cover saat review sesuai `cover_brief` di task ClickUp. Jangan retry berkali-kali kalau Canva MCP disconnect — laporkan saja sebagai temuan reliability.
 
 ---
 
