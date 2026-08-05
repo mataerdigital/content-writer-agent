@@ -48,6 +48,12 @@ run itu (retry pakai key sama → aman, tidak dobel). Default automation harian 
 membatasi maksimal artikel automation per hari (bukan lewat key), jadi angka ini hanya penanda unik
 per submission; kalau perlu submit lagi di hari sama (mis. uji), naikkan ke `-02`, `-03`, dst.
 
+**Batas keras harian (dikonfirmasi via test 5 Agustus 2026):** backend menolak dengan `429` dan pesan
+`"Batas maksimal 3 draft automation per hari sudah tercapai"` setelah 3 draft automation berhasil dibuat
+di hari WIB yang sama, **berapa pun** angka `{NN}` yang dipakai (limit ini independen dari Idempotency-Key,
+jadi menaikkan `-04` dst TIDAK akan menembusnya). Kalau dapat `429` ini: jangan retry, laporkan apa adanya
+(sudah kena limit harian), dan tunggu hari kerja berikutnya WIB untuk submit lagi.
+
 **Alur pengiriman (wajib urut):**
 buat artikel (Langkah 0–4) → ambil kategori & tags (Langkah 5) → buat & upload cover (Langkah 6) →
 kirim draft + thumbnail_id + category_ids + tag_ids (Langkah 7) → backend otomatis buat task ClickUp
@@ -422,30 +428,70 @@ Aturan tags:
 
 ### LANGKAH 6 — Buat Cover Article & Upload
 
+Cover dibuat dengan **kompositing asli** (bukan cuma prompt teks ke AI image generator): foto latar boleh AI-generated,
+tapi diagonal cutout, logo, dan typography judul WAJIB di-render langsung sebagai elemen sungguhan di atas gambar,
+via Canva MCP `edit-design`. Ini menggantikan pola cover lama (garis vertikal 40%, logo/judul cuma dideskripsikan
+di brief text untuk digambar manual oleh admin).
+
 **A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
-- Template: Gunakan template Khairi (tersimpan di folder desain tim)
 - Ukuran: 1920 x 1080 px
-- **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
-- Prompt AI (sesuaikan bagian visual dengan topik artikel):
-  "Hero banner for higher education article cover. Large white negative space on top-left 40% area. Modern Indonesian campus in background. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover sebelumnya]. Premium corporate design, minimalist, white and blue color scheme, cinematic lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover style, Times Higher Education editorial style, ultra high resolution, 1920x1080, no text, no logo, headline area intentionally left blank."
-- Tipografi:
-  - Baris 1: Montserrat Bold — [frasa terkuat dari judul]
-  - Baris 2: Montserrat Regular — [pelengkap judul]
-  - Posisi: area kiri atas (40% area negatif)
-  - Warna: putih atau biru tua
+- **Layout wajib:** diagonal white cutout di sisi kiri, ±30% lebar rata-rata (bukan vertikal 50%, bukan 40% lurus).
+  Sudut miring: lebar di atas ~34% (≈650px dari 1920px), menyempit ke ~22% di bawah (≈420px). Foto latar mengisi
+  sisi kanan yang tidak tertutup diagonal.
+- Logo Mataer Edutech (asli, bukan hasil AI-generate) di pojok kiri atas area putih.
+- Typography ter-render langsung di atas gambar (bukan cuma brief teks untuk admin): baris kicker italic kecil
+  (label singkat, mis. nama Website Category atau Pilar) + judul artikel bold besar di bawahnya, rata kiri,
+  keduanya di dalam area putih.
+- **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual foto latar
+  terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
+- Prompt AI untuk foto latar (sesuaikan bagian visual dengan topik artikel; TANPA teks/logo — itu ditambahkan lewat
+  kompositing di Langkah 6B-6C, bukan lewat prompt):
+  "Photorealistic hero photograph, wide angle. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover
+  sebelumnya]. Premium corporate editorial photography style, natural daylight, blue and white color palette,
+  shallow depth of field, McKinsey report style, Times Higher Education editorial style, ultra high resolution,
+  cinematic, no text, no logo, no graphic overlays."
 
-**B. Generate gambar cover** memakai prompt AI di atas (via tool image-generation yang tersedia). Hasilkan gambar 1920x1080 (PNG/JPG/WEBP).
+**B. Generate & komposit cover via Canva MCP** (urutan tool call):
+1. `generate-design` (design_type `desktop_wallpaper`) dengan prompt foto latar di atas → ambil salah satu `candidate_id`.
+2. `create-design-from-candidate` → dapat `design_id` (kanvas 1920x1080 tersimpan, siap diedit).
+3. Siapkan asset logo (sekali per sesi, reuse kalau masih ada): logo master ada di Canva design
+   **"LOGO MATAER DIGITAL"** (`DAFyXcPXg0I`), page 6 = lockup biru/hijau bersih di atas background polos.
+   - `export-design` page 6 format png transparent_background:true → dapat URL (domain `export-download.canva.com`,
+     kadang tidak bisa diunduh langsung tergantung kebijakan jaringan sesi — tidak masalah, tidak perlu diunduh manual).
+   - Kalau perlu crop rapat: unduh via domain `media.canva.com` (thumbnail dari `read-design` thumbnails, biasanya
+     tidak diblokir kebijakan jaringan meski `export-download.canva.com`/`design.canva.ai` diblokir), crop bounding
+     box logo (background non-transparan konsisten, mis. abu-abu), simpan PNG transparan.
+   - Upload PNG logo ke `POST {API_BASE}/api/automations/files` (multipart, dapat URL publik di
+     `mataer-digital.is3.cloudhost.id`) → lalu `upload-asset-from-url` (Canva) dengan URL publik itu → dapat
+     `asset_id` Canva yang bisa dipakai berulang kali (URL publik milik web sendiri, bukan link privat orang lain,
+     jadi aman dipakai untuk `upload-asset-from-url`).
+4. `read-design` dengan `open_transaction: true` pada `design_id` dari langkah 2 → dapat `transaction_id` dan
+   `page_id` halaman 1.
+5. `edit-design` (operations dalam satu page, `finalize: "keep_open"`):
+   - `insert_shape`: polygon putih diagonal. `path`: `"M0,0 L650,0 L420,1080 L0,1080 Z"`, `left/top: 0,0`,
+     `width/height: 1920,1080`, `view_box_width/height: 1920,1080`, `color: "#FFFFFF"`.
+   - `insert_fill`: logo, `asset_id` dari langkah 3, posisi kira-kira `left:70 top:60 width:300` (jaga rasio).
+   - `add_text` x2: kicker (label singkat) dan judul artikel, posisi rata kiri di dalam area putih
+     (mis. kicker `left:75 top:260 width:480`, judul `left:75 top:320 width:490`).
+   - `format_text`: kicker → `font_style: italic`, `font_size` ±32, warna biru brand (mis. `#1E4FA3`).
+     Judul → `font_weight: bold`, `font_size` ±56, warna navy gelap (mis. `#0B1F3A`).
+   - Cek thumbnail hasil tiap kali edit sebelum lanjut (bandingkan before/after) sebelum commit.
+6. `edit-design` dengan `finalize: "commit"` (operations kosong) → permanen.
+7. `export-design` format `jpg`, `width/height: 1920/1080` → dapat URL final.
 
-**C. Upload cover** → dapatkan file id untuk thumbnail:
+**C. Upload cover final** → dapatkan file id untuk thumbnail:
 ```
 POST {API_BASE}/api/automations/files
 Headers: X-API-Key: {AUTOMATION_API_KEY}
-- multipart: field "file" = gambar cover hasil generate, ATAU
-- JSON: { "image_url": "<url gambar hasil generate>" }
+- JSON: { "image_url": "<url export final dari Langkah 6B-7>" }  (backend yang fetch, jadi aman meski
+  domain export Canva tidak bisa diakses langsung dari sesi otomasi)
 ```
 Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
-Jika generate/upload cover gagal, lanjut tanpa thumbnail (kirim draft tanpa `thumbnail_id`); admin akan menambah cover saat review sesuai `cover_brief` di task ClickUp.
+**Fallback:** kalau Canva MCP tidak tersambung di sesi/trigger ini (pernah terjadi di run terjadwal — connector tidak
+selalu ikut ter-bind ke trigger), atau langkah kompositing gagal di tengah jalan, lanjut TANPA thumbnail (kirim draft
+tanpa `thumbnail_id`); tulis di `cover_brief` bahwa cover gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A
+supaya admin bisa membuatnya manual saat review.
 
 ---
 
