@@ -25,7 +25,7 @@ Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Websit
 otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
 yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
-- API_BASE (testing): `https://pc-fajar.campusupdate.co.id`
+- API_BASE (testing): `https://api-dev.mataerdigital.com`
   (Ganti ke domain produksi saat sudah live.)
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
