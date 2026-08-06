@@ -476,8 +476,14 @@ itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
    lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
 2. **Komposit dengan Python/Pillow** (`pip install Pillow` kalau belum ada di environment):
    - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
-   - `Image.alpha_composite()` template `cover-template.png` di atasnya (paste template PERSIS di atas foto —
-     urutannya penting: foto dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
+   - **WAJIB — scrim legibility.** Prompt AI di 6A minta "negative space" di kiri, tapi model TIDAK selalu patuh
+     (dikonfirmasi via test 6 Agustus 2026: satu run menaruh layar/orang persis di zona teks, judul jadi tidak
+     terbaca). Jangan andalkan negative space dari foto saja — selalu tempel gradient putih semi-transparan di atas
+     foto SEBELUM template & teks: rectangle RGBA putih penuh tinggi kanvas, alpha ±235/255 dari `x:0` sampai
+     `x:700`, fade ke alpha 0 di `x:950` (linear). Ini jaminan keterbacaan apa pun isi fotonya, sekaligus efek
+     visual yang konsisten dengan gaya "area putih" pada cover-cover sebelumnya.
+   - `Image.alpha_composite()` template `cover-template.png` di atas foto+scrim (paste template PERSIS di atas —
+     urutannya penting: foto+scrim dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
      brand selalu terlihat penuh, tidak ketutup foto).
    - `ImageDraw.text()` untuk kicker + judul multi-baris di zona aman (lihat koordinat & warna di 6A). Font: pakai
      `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
