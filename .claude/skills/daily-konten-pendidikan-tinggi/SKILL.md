@@ -25,7 +25,14 @@ Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Websit
 otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
 yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
-- API_BASE: `https://api-dev.mataerdigital.com`
+- API_BASE (dev): `https://api-dev.mataerdigital.com`
+  (Sebelumnya sempat memakai `https://pc-fajar.campusupdate.co.id` — itu tunnel ke mesin lokal salah
+  satu developer dan TIDAK boleh dipakai lagi. Gunakan env `AUTOMATION_API_BASE_URL` bila tersedia di
+  environment yang menjalankan routine; nilainya harus `https://api-dev.mataerdigital.com` untuk dev.
+  Ganti ke domain produksi saat sudah live.)
+- Cover artikel dibuat via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di environment yang
+  menjalankan routine) + kompositing lokal Python/Pillow dengan template brand baku — TIDAK pakai Canva
+  (lihat Langkah 6).
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 - Ambil tags (publik, tanpa auth):
@@ -427,7 +434,9 @@ Aturan tags:
 
 ### LANGKAH 6 — Buat Cover Article & Upload
 
-Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** —  Elemen brand baku (logo,
+Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** — **TIDAK pakai Canva MCP sama
+sekali** (dihapus dari pipeline per revisi 6 Agustus 2026; kompositing multi-step di Canva `edit-design` terbukti
+bekerja tapi kompleks dan lambat dibanding cukup satu prompt AI + template PNG statis). Elemen brand baku (logo,
 tagline, dekorasi blob, pill URL) sudah baku di satu file template yang di-reuse tiap artikel — yang berubah tiap
 hari hanya foto latar (dari AI Gateway) dan judul/tipografi (di-render lokal).
 
@@ -457,7 +466,7 @@ itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
 - **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel; elemen
   brand (logo/tagline/blob/pill) tetap baku, tidak diubah.
 
-**B. Generate & komposit** :
+**B. Generate & komposit** (semua lokal, tanpa Canva):
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
    Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
    Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt dari 6A>", "size": "1536x1024", "n": 1 }`
