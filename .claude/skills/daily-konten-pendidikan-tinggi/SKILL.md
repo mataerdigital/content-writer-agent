@@ -30,6 +30,9 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   satu developer dan TIDAK boleh dipakai lagi. Gunakan env `AUTOMATION_API_BASE_URL` bila tersedia di
   environment yang menjalankan routine; nilainya harus `https://api-dev.mataerdigital.com` untuk dev.
   Ganti ke domain produksi saat sudah live.)
+- Foto latar cover di-generate via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di
+  environment yang menjalankan routine — resolusi jauh lebih tajam dibanding Canva `generate-design`,
+  lihat Langkah 6B).
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 - Ambil tags (publik, tanpa auth):
@@ -463,10 +466,25 @@ elemen berikut WAJIB semua ada, bukan cuma sebagian:
   shallow depth of field, McKinsey report style, Times Higher Education editorial style, ultra high resolution,
   cinematic, no text, no logo, no graphic overlays."
 
-**B. Generate & komposit cover via Canva MCP** (urutan tool call; semua koordinat dalam kanvas 1920x1080):
-1. `generate-design` (design_type `desktop_wallpaper`) dengan prompt foto latar di atas → ambil salah satu `candidate_id`.
-2. `create-design-from-candidate` → dapat `design_id` (kanvas 1920x1080 tersimpan, siap diedit).
-3. Siapkan asset logo (sekali per sesi, reuse kalau masih ada asset_id valid dari sesi sebelumnya — kalau invalid/
+**B. Generate foto latar via Vercel AI Gateway, lalu komposit di Canva MCP** (urutan tool call; semua koordinat
+dalam kanvas 1920x1080). Foto latar TIDAK lagi digenerate lewat Canva `generate-design` — resolusinya dibatasi
+di sisi asset internal Canva dan hasilnya kurang tajam. Canva `generate-design` sekarang hanya dipakai untuk
+membuat kanvas dasar 1920x1080 (isinya nanti ditutup total oleh foto asli), bukan sebagai sumber foto final.
+
+1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
+   Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
+   Body: `{ "model": "openai/gpt-image-1", "prompt": "<prompt foto latar dari 6A>", "size": "1536x1024", "n": 1 }`
+   (kalau kena limit budget/kredit bulanan Vercel, fallback ke model lebih murah `openai/gpt-image-1-mini` dengan
+   body sama). Respons `data[0].b64_json` → decode base64 → simpan sebagai file PNG lokal sementara.
+2. Upload PNG foto latar ke `POST {API_BASE}/api/automations/files` (multipart field `file`) → dapat URL publik di
+   `mataer-digital.is3.cloudhost.id`.
+3. `upload-asset-from-url` (Canva) dengan URL publik itu → dapat `asset_id` foto (khusus untuk artikel hari ini,
+   tidak reusable seperti logo).
+4. `generate-design` (design_type `desktop_wallpaper`) dengan prompt netral singkat (mis. "abstract soft blue
+   gradient background") — HANYA untuk mendapat kanvas 1920x1080, isinya akan tertutup total oleh foto asli di
+   langkah 6 berikutnya, jadi kualitas/isi generate ini tidak relevan → ambil `candidate_id`.
+5. `create-design-from-candidate` → dapat `design_id` (kanvas 1920x1080 tersimpan, siap diedit).
+6. Siapkan asset logo (sekali per sesi, reuse kalau masih ada asset_id valid dari sesi sebelumnya — kalau invalid/
    asset hilang, generate ulang dari sumber asli): logo master ada di Canva design **"LOGO MATAER DIGITAL"**
    (`DAFyXcPXg0I`), page 6 = lockup biru/hijau bersih di atas background polos.
    - `read-design` thumbnails pada page 6 → dapat URL domain `media.canva.com` (biasanya tidak diblokir kebijakan
@@ -477,18 +495,32 @@ elemen berikut WAJIB semua ada, bukan cuma sebagian:
      `asset_id` Canva yang bisa dipakai berulang kali (URL publik milik web sendiri, bukan link privat orang lain,
      jadi aman dipakai untuk `upload-asset-from-url`; jangan pakai URL `export-download.canva.com` langsung ke
      `upload-asset-from-url`, pernah gagal `fetch_failed`).
-4. `read-design` dengan `open_transaction: true` pada `design_id` dari langkah 2 → dapat `transaction_id` dan
+7. `read-design` dengan `open_transaction: true` pada `design_id` dari langkah 5 → dapat `transaction_id` dan
    `page_id` halaman 1.
-5. `edit-design` (operations dalam satu page, `finalize: "keep_open"`) — urutan layer dari belakang ke depan:
+8. `edit-design` (operations dalam satu page, `finalize: "keep_open"`) — urutan layer dari belakang ke depan:
+   - `insert_fill`: foto latar asli, `asset_id` dari langkah 3, `left:0 top:0 width:1920 height:1080` (full-bleed,
+     menutup total kanvas placeholder dari langkah 4-5 — ini yang membuat foto akhirnya tajam, bukan hasil Canva).
    - `insert_shape` x4 (blob dekoratif, di-insert SEBELUM diagonal shape supaya diagonal/logo/teks tetap di atasnya):
      lingkaran via path `"M {cx-r},{cy} A{r},{r} 0 1,0 {cx+r},{cy} A{r},{r} 0 1,0 {cx-r},{cy} Z"`, `left/top:0,0`,
      `width/height:1920,1080`, `view_box_width/height:1920,1080`. Contoh 4 blob (2 lapis x 2 pojok):
      kiri-bawah `cx:100,cy:1150,r:350` warna `#E4EEFC` opacity `0.55` + `cx:-50,cy:1000,r:250` warna `#C9DFFA`
      opacity `0.45`; kanan-bawah `cx:1850,cy:1200,r:450` warna `#E4EEFC` opacity `0.55` + `cx:2000,cy:1050,r:300`
      warna `#C9DFFA` opacity `0.45`.
-   - `insert_shape`: polygon putih diagonal. `path`: `"M0,0 L650,0 L420,1080 L0,1080 Z"`, `left/top: 0,0`,
-     `width/height: 1920,1080`, `view_box_width/height: 1920,1080`, `color: "#FFFFFF"`.
-   - `insert_fill`: logo, `asset_id` dari langkah 3, posisi `left:70 top:60 width:300 height:56` (jaga rasio ~5.3:1).
+   - **Diagonal white cutout dengan gradient bertingkat (5 lapis).** `insert_shape` Canva hanya mendukung solid
+     fill (tidak ada gradient asli), jadi transisi foto→putih disimulasikan dengan 5 polygon putih ditumpuk, dari
+     terluar/paling transparan (batas paling jauh ke area foto) ke inti/paling opaque (batas final, sama persis
+     dengan posisi cutout tegas yang dipakai sebelumnya). Semua `color:"#FFFFFF"`, `left/top:0,0`,
+     `width/height:1920,1080`, `view_box_width/height:1920,1080`, insert berurutan dari lapis 1 (paling belakang)
+     ke lapis 5 (paling depan):
+     1. opacity `0.15`, `path:"M0,0 L810,0 L580,1080 L0,1080 Z"`
+     2. opacity `0.22`, `path:"M0,0 L770,0 L540,1080 L0,1080 Z"`
+     3. opacity `0.30`, `path:"M0,0 L730,0 L500,1080 L0,1080 Z"`
+     4. opacity `0.40`, `path:"M0,0 L690,0 L460,1080 L0,1080 Z"`
+     5. opacity `1.0`, `path:"M0,0 L650,0 L420,1080 L0,1080 Z"` (lapis inti — batas final yang sama dipakai versi
+        hard-edge sebelumnya; logo/teks tetap ditempatkan relatif ke batas lapis ini, bukan ke lapis-lapis luar)
+     Cek thumbnail setelah lapis ini di-insert — kalau transisi masih terlihat terlalu bertingkat/kotak-kotak
+     (bukan gradasi halus), rapatkan jarak antar lapis (mis. offset 10/20/30/40 dari inti, bukan 40/80/120/160).
+   - `insert_fill`: logo, `asset_id` dari langkah 6, posisi `left:70 top:60 width:300 height:56` (jaga rasio ~5.3:1).
    - `add_text` x3 (tagline, tiga elemen terpisah untuk warna beda): "Empowering " `left:1430 top:40 width:170`,
      "Education " `left:1595 top:40 width:155`, "Excellence" `left:1745 top:40 width:155`.
    - `add_text` x2: kicker (label singkat) dan judul artikel, posisi rata kiri di dalam area putih
@@ -502,22 +534,23 @@ elemen berikut WAJIB semua ada, bukan cuma sebagian:
      Judul → `font_weight:bold font_size:56 color:#0B1F3A line_height:1.15`. "www." → `font_size:26 font_weight:bold
      color:#1E4FA3 decoration:underline`. "mataerdigital.com" → `font_size:26 font_weight:bold color:#111111`.
    - Cek thumbnail hasil tiap kali edit sebelum lanjut (bandingkan before/after) sebelum commit.
-6. `edit-design` dengan `finalize: "commit"` (operations kosong) → permanen.
-7. `export-design` format `jpg`, `width/height: 1920/1080` → dapat URL final.
+9. `edit-design` dengan `finalize: "commit"` (operations kosong) → permanen.
+10. `export-design` format `jpg`, `width/height: 1920/1080` → dapat URL final (resolusi ekspor dipaksa 1920x1080
+    terlepas dari ukuran kanvas asli, jadi foto tetap tajam).
 
 **C. Upload cover final** → dapatkan file id untuk thumbnail:
 ```
 POST {API_BASE}/api/automations/files
 Headers: X-API-Key: {AUTOMATION_API_KEY}
-- JSON: { "image_url": "<url export final dari Langkah 6B-7>" }  (backend yang fetch, jadi aman meski
+- JSON: { "image_url": "<url export final dari Langkah 6B-10>" }  (backend yang fetch, jadi aman meski
   domain export Canva tidak bisa diakses langsung dari sesi otomasi)
 ```
 Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
 **Fallback:** kalau Canva MCP tidak tersambung di sesi/trigger ini (pernah terjadi di run terjadwal — connector tidak
-selalu ikut ter-bind ke trigger), atau langkah kompositing gagal di tengah jalan, lanjut TANPA thumbnail (kirim draft
-tanpa `thumbnail_id`); tulis di `cover_brief` bahwa cover gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A
-supaya admin bisa membuatnya manual saat review.
+selalu ikut ter-bind ke trigger), AI Gateway tidak tersambung/kena limit kredit bulanan, atau langkah kompositing
+gagal di tengah jalan, lanjut TANPA thumbnail (kirim draft tanpa `thumbnail_id`); tulis di `cover_brief` bahwa cover
+gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A supaya admin bisa membuatnya manual saat review.
 
 ---
 
