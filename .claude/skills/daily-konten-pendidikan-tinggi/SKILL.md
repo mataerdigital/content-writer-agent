@@ -30,9 +30,9 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   satu developer dan TIDAK boleh dipakai lagi. Gunakan env `AUTOMATION_API_BASE_URL` bila tersedia di
   environment yang menjalankan routine; nilainya harus `https://api-dev.mataerdigital.com` untuk dev.
   Ganti ke domain produksi saat sudah live.)
-- Foto latar cover di-generate via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di
-  environment yang menjalankan routine — resolusi jauh lebih tajam dibanding Canva `generate-design`,
-  lihat Langkah 6B).
+- Cover artikel dibuat via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di environment yang
+  menjalankan routine) + kompositing lokal Python/Pillow dengan template brand baku — TIDAK pakai Canva
+  (lihat Langkah 6).
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 - Ambil tags (publik, tanpa auth):
@@ -434,126 +434,64 @@ Aturan tags:
 
 ### LANGKAH 6 — Buat Cover Article & Upload
 
-Cover dibuat dengan **kompositing asli** (bukan cuma prompt teks ke AI image generator): foto latar boleh AI-generated,
-tapi diagonal cutout, logo, dan typography judul WAJIB di-render langsung sebagai elemen sungguhan di atas gambar,
-via Canva MCP `edit-design`. Ini menggantikan pola cover lama (garis vertikal 40%, logo/judul cuma dideskripsikan
-di brief text untuk digambar manual oleh admin).
+Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** — **TIDAK pakai Canva MCP sama
+sekali** (dihapus dari pipeline per revisi 6 Agustus 2026; kompositing multi-step di Canva `edit-design` terbukti
+bekerja tapi kompleks dan lambat dibanding cukup satu prompt AI + template PNG statis). Elemen brand baku (logo,
+tagline, dekorasi blob, pill URL) sudah baku di satu file template yang di-reuse tiap artikel — yang berubah tiap
+hari hanya foto latar (dari AI Gateway) dan judul/tipografi (di-render lokal).
 
-**A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp).
-Mengikuti template resmi "Khairi" (contoh dasar: logo + tagline + dekorasi + pill URL, lihat referensi desain tim) —
-elemen berikut WAJIB semua ada, bukan cuma sebagian:
-- Ukuran: 1920 x 1080 px
-- **Layout foto & teks:** diagonal white cutout di sisi kiri, ±30% lebar rata-rata (bukan vertikal 50%, bukan 40%
-  lurus). Sudut miring: lebar di atas ~34% (≈650px dari 1920px), menyempit ke ~22% di bawah (≈420px). Foto latar
-  mengisi sisi kanan yang tidak tertutup diagonal.
-- **Logo** Mataer Edutech (asli, bukan hasil AI-generate) di pojok kiri atas area putih.
-- **Tagline** "Empowering Education Excellence" di pojok kanan atas, 3 warna terpisah: "Empowering" hitam/abu gelap,
-  "Education" biru brand, "Excellence" hitam/abu gelap — bold, ukuran kecil (±26px).
-- **Dekorasi blob** lengkung biru muda lembut (soft wave/blob, opacity ±0.45-0.55, 2 lapis warna beda intensitas)
-  di pojok kiri-bawah dan kanan-bawah kanvas, sebagian keluar dari tepi kanvas supaya cuma lengkungnya yang terlihat.
-- **Pill URL** "www.mataerdigital.com" di area bawah tengah: rounded rectangle biru muda pucat (corner_rounding
-  penuh/kapsul), teks "www." biru brand + underline, "mataerdigital.com" hitam bold, keduanya bold.
-- **Typography judul** ter-render langsung di atas gambar (bukan cuma brief teks untuk admin, dan bukan versi
-  template kosong): baris kicker italic kecil (label singkat, mis. nama Website Category atau Pilar) + judul
-  artikel bold besar di bawahnya, rata kiri, keduanya di dalam area putih diagonal.
-- **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual foto latar
-  terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar). Logo/tagline/blob/pill TETAP
-  sama tiap artikel (elemen brand baku) — yang divariasikan hanya foto latar dan typography judul.
-- Prompt AI untuk foto latar (sesuaikan bagian visual dengan topik artikel; TANPA teks/logo — itu ditambahkan lewat
-  kompositing di Langkah 6B-6C, bukan lewat prompt):
-  "Photorealistic hero photograph, wide angle. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover
-  sebelumnya]. Premium corporate editorial photography style, natural daylight, blue and white color palette,
-  shallow depth of field, McKinsey report style, Times Higher Education editorial style, ultra high resolution,
-  cinematic, no text, no logo, no graphic overlays."
+**Asset template baku (reusable, sudah tersedia di repo — tidak perlu dibuat ulang):**
+`.claude/skills/daily-konten-pendidikan-tinggi/assets/cover-template.png` — PNG 1920x1080 RGBA, transparan total
+kecuali logo Mataer Edutech (pojok kiri atas), tagline "Empowering Education Excellence" 3 warna (pojok kanan atas),
+dekorasi blob biru lembut (pojok kiri-bawah & kanan-bawah), dan pill "www.mataerdigital.com" (bawah tengah). Area
+`x:60-1100, y:150-700` pada kanvas ini benar-benar transparan/kosong (dikonfirmasi lewat inspeksi alpha channel) —
+itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
 
-**B. Generate foto latar via Vercel AI Gateway, lalu komposit di Canva MCP** (urutan tool call; semua koordinat
-dalam kanvas 1920x1080). Foto latar TIDAK lagi digenerate lewat Canva `generate-design` — resolusinya dibatasi
-di sisi asset internal Canva dan hasilnya kurang tajam. Canva `generate-design` sekarang hanya dipakai untuk
-membuat kanvas dasar 1920x1080 (isinya nanti ditutup total oleh foto asli), bukan sebagai sumber foto final.
+**A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
+- Ukuran: 1920 x 1080 px, pakai template baku di atas.
+- **Prompt AI untuk foto latar** (sesuaikan bagian visual dengan topik artikel & judul hari ini; variasikan dari
+  cover-cover sebelumnya supaya tidak monoton — cek arahan cover 2-3 artikel terakhir dulu):
+  "Hero banner for higher education article cover. Large clean white negative space covering the left 40-45 percent
+  of the frame from top to bottom. [deskripsi visual spesifik topik artikel — orang, aktivitas, lokasi kampus] filling
+  the right portion of the frame. Premium corporate design, minimalist, white and blue color scheme, cinematic
+  lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover
+  style, Times Higher Education editorial style, ultra high resolution, no text, no logo, headline area intentionally
+  left blank."
+- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI — prompt di atas sengaja minta "no text"):
+  - Kicker kecil non-bold: nama Website Category hari ini (mis. "PMB & MARKETING KAMPUS").
+  - Judul artikel bold, dipecah 2-3 baris pendek yang enak dibaca (bukan satu baris panjang mepet), mengikuti judul
+    final dari Langkah 4 — JANGAN dikarang ulang, harus sama persis dengan `title`.
+  - Posisi: rata kiri, dalam zona aman `x:75, y:260` ke bawah (kicker dulu, lalu judul multi-baris).
+  - Warna: biru brand `#1E4FA3` untuk kicker, navy gelap `#0B1F3A` untuk judul (background di zona ini putih/terang).
+- **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel; elemen
+  brand (logo/tagline/blob/pill) tetap baku, tidak diubah.
 
+**B. Generate & komposit** (semua lokal, tanpa Canva):
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
    Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
-   Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt foto latar dari 6A>", "size": "1536x1024", "n": 1 }`
+   Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt dari 6A>", "size": "1536x1024", "n": 1 }`
    (dikonfirmasi via test 6 Agustus 2026: model penuh `openai/gpt-image-1` ditolak `403 no_providers_available`
-   — "Free tier users do not have access to this model" — di akun Vercel AI Gateway yang dipakai saat ini, jadi
-   `-mini` adalah default yang benar-benar jalan, bukan sekadar fallback hemat biaya. Kalau akun sudah upgrade dari
-   free tier, boleh coba `openai/gpt-image-1` penuh untuk kualitas lebih tinggi). Respons `data[0].b64_json` →
-   decode base64 → simpan sebagai file PNG lokal sementara.
-2. Upload PNG foto latar ke `POST {API_BASE}/api/automations/files` (multipart field `file`) → dapat URL publik di
-   `mataer-digital.is3.cloudhost.id`.
-3. `upload-asset-from-url` (Canva) dengan URL publik itu → dapat `asset_id` foto (khusus untuk artikel hari ini,
-   tidak reusable seperti logo).
-4. `generate-design` (design_type `desktop_wallpaper`) dengan prompt netral singkat (mis. "abstract soft blue
-   gradient background") — HANYA untuk mendapat kanvas 1920x1080, isinya akan tertutup total oleh foto asli di
-   langkah 6 berikutnya, jadi kualitas/isi generate ini tidak relevan → ambil `candidate_id`.
-5. `create-design-from-candidate` → dapat `design_id` (kanvas 1920x1080 tersimpan, siap diedit).
-6. Siapkan asset logo (sekali per sesi, reuse kalau masih ada asset_id valid dari sesi sebelumnya — kalau invalid/
-   asset hilang, generate ulang dari sumber asli): logo master ada di Canva design **"LOGO MATAER DIGITAL"**
-   (`DAFyXcPXg0I`), page 6 = lockup biru/hijau bersih di atas background polos.
-   - `read-design` thumbnails pada page 6 → dapat URL domain `media.canva.com` (biasanya tidak diblokir kebijakan
-     jaringan meski `export-download.canva.com`/`design.canva.ai` diblokir) → unduh, crop rapat bounding box logo
-     (background non-transparan konsisten, mis. abu-abu, dianggap background lalu dibuat transparan).
-   - Upload PNG logo hasil crop ke `POST {API_BASE}/api/automations/files` (multipart, dapat URL publik di
-     `mataer-digital.is3.cloudhost.id`) → lalu `upload-asset-from-url` (Canva) dengan URL publik itu → dapat
-     `asset_id` Canva yang bisa dipakai berulang kali (URL publik milik web sendiri, bukan link privat orang lain,
-     jadi aman dipakai untuk `upload-asset-from-url`; jangan pakai URL `export-download.canva.com` langsung ke
-     `upload-asset-from-url`, pernah gagal `fetch_failed`).
-7. `read-design` dengan `open_transaction: true` pada `design_id` dari langkah 5 → dapat `transaction_id` dan
-   `page_id` halaman 1.
-8. `edit-design` (operations dalam satu page, `finalize: "keep_open"`) — urutan layer dari belakang ke depan:
-   - `insert_fill`: foto latar asli, `asset_id` dari langkah 3, `left:0 top:0 width:1920 height:1080` (full-bleed,
-     menutup total kanvas placeholder dari langkah 4-5 — ini yang membuat foto akhirnya tajam, bukan hasil Canva).
-   - `insert_shape` x4 (blob dekoratif, di-insert SEBELUM diagonal shape supaya diagonal/logo/teks tetap di atasnya):
-     lingkaran via path `"M {cx-r},{cy} A{r},{r} 0 1,0 {cx+r},{cy} A{r},{r} 0 1,0 {cx-r},{cy} Z"`, `left/top:0,0`,
-     `width/height:1920,1080`, `view_box_width/height:1920,1080`. Contoh 4 blob (2 lapis x 2 pojok):
-     kiri-bawah `cx:100,cy:1150,r:350` warna `#E4EEFC` opacity `0.55` + `cx:-50,cy:1000,r:250` warna `#C9DFFA`
-     opacity `0.45`; kanan-bawah `cx:1850,cy:1200,r:450` warna `#E4EEFC` opacity `0.55` + `cx:2000,cy:1050,r:300`
-     warna `#C9DFFA` opacity `0.45`.
-   - **Diagonal white cutout dengan gradient bertingkat (5 lapis).** `insert_shape` Canva hanya mendukung solid
-     fill (tidak ada gradient asli), jadi transisi foto→putih disimulasikan dengan 5 polygon putih ditumpuk, dari
-     terluar/paling transparan (batas paling jauh ke area foto) ke inti/paling opaque (batas final, sama persis
-     dengan posisi cutout tegas yang dipakai sebelumnya). Semua `color:"#FFFFFF"`, `left/top:0,0`,
-     `width/height:1920,1080`, `view_box_width/height:1920,1080`, insert berurutan dari lapis 1 (paling belakang)
-     ke lapis 5 (paling depan):
-     1. opacity `0.15`, `path:"M0,0 L810,0 L580,1080 L0,1080 Z"`
-     2. opacity `0.22`, `path:"M0,0 L770,0 L540,1080 L0,1080 Z"`
-     3. opacity `0.30`, `path:"M0,0 L730,0 L500,1080 L0,1080 Z"`
-     4. opacity `0.40`, `path:"M0,0 L690,0 L460,1080 L0,1080 Z"`
-     5. opacity `1.0`, `path:"M0,0 L650,0 L420,1080 L0,1080 Z"` (lapis inti — batas final yang sama dipakai versi
-        hard-edge sebelumnya; logo/teks tetap ditempatkan relatif ke batas lapis ini, bukan ke lapis-lapis luar)
-     Cek thumbnail setelah lapis ini di-insert — kalau transisi masih terlihat terlalu bertingkat/kotak-kotak
-     (bukan gradasi halus), rapatkan jarak antar lapis (mis. offset 10/20/30/40 dari inti, bukan 40/80/120/160).
-   - `insert_fill`: logo, `asset_id` dari langkah 6, posisi `left:70 top:60 width:300 height:56` (jaga rasio ~5.3:1).
-   - `add_text` x3 (tagline, tiga elemen terpisah untuk warna beda): "Empowering " `left:1430 top:40 width:170`,
-     "Education " `left:1595 top:40 width:155`, "Excellence" `left:1745 top:40 width:155`.
-   - `add_text` x2: kicker (label singkat) dan judul artikel, posisi rata kiri di dalam area putih
-     (mis. kicker `left:75 top:260 width:480`, judul `left:75 top:320 width:490`).
-   - `insert_shape`: pill URL, rounded rect kapsul. `left/top:775,975`, `width/height:365,75`,
-     `view_box_width/height:365,75`, `path:"M37.5,0 L327.5,0 A37.5,37.5 0 0 1 327.5,75 L37.5,75 A37.5,37.5 0 0 1 37.5,0 Z"`,
-     `color:"#CFE0FB"`.
-   - `add_text` x2: "www." `left:815 top:997 width:70`, "mataerdigital.com" `left:880 top:997 width:230`.
-   - `format_text` untuk semua text di atas: tagline 3 kata → `font_size:26 font_weight:bold`, warna "Empowering"/
-     "Excellence" `#111111`, "Education" `#1E4FA3`. Kicker → `font_style:italic font_size:32 color:#1E4FA3`.
-     Judul → `font_weight:bold font_size:56 color:#0B1F3A line_height:1.15`. "www." → `font_size:26 font_weight:bold
-     color:#1E4FA3 decoration:underline`. "mataerdigital.com" → `font_size:26 font_weight:bold color:#111111`.
-   - Cek thumbnail hasil tiap kali edit sebelum lanjut (bandingkan before/after) sebelum commit.
-9. `edit-design` dengan `finalize: "commit"` (operations kosong) → permanen.
-10. `export-design` format `jpg`, `width/height: 1920/1080` → dapat URL final (resolusi ekspor dipaksa 1920x1080
-    terlepas dari ukuran kanvas asli, jadi foto tetap tajam).
+   — "Free tier users do not have access to this model" — di akun Vercel AI Gateway saat ini, jadi `-mini` adalah
+   default yang benar-benar jalan. Kalau akun sudah upgrade dari free tier, boleh coba model penuh untuk kualitas
+   lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
+2. **Komposit dengan Python/Pillow** (`pip install Pillow` kalau belum ada di environment):
+   - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
+   - `Image.alpha_composite()` template `cover-template.png` di atasnya (paste template PERSIS di atas foto —
+     urutannya penting: foto dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
+     brand selalu terlihat penuh, tidak ketutup foto).
+   - `ImageDraw.text()` untuk kicker + judul multi-baris di zona aman (lihat koordinat & warna di 6A). Font: pakai
+     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
+     `/usr/share/fonts/truetype/liberation/` sebagai pengganti Montserrat — font Montserrat asli ada di Adobe Fonts
+     tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan sandbox (sudah dicek berkali-kali, belum ada solusi).
+   - Simpan hasil akhir sebagai JPG quality ±92.
+3. Upload JPG hasil akhir ke `POST {API_BASE}/api/automations/files` (multipart field `file`, langsung dari file
+   lokal — TIDAK perlu lewat `image_url` seperti sebelumnya karena tidak ada lagi domain Canva yang perlu di-proxy).
+   Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
-**C. Upload cover final** → dapatkan file id untuk thumbnail:
-```
-POST {API_BASE}/api/automations/files
-Headers: X-API-Key: {AUTOMATION_API_KEY}
-- JSON: { "image_url": "<url export final dari Langkah 6B-10>" }  (backend yang fetch, jadi aman meski
-  domain export Canva tidak bisa diakses langsung dari sesi otomasi)
-```
-Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
-
-**Fallback:** kalau Canva MCP tidak tersambung di sesi/trigger ini (pernah terjadi di run terjadwal — connector tidak
-selalu ikut ter-bind ke trigger), AI Gateway tidak tersambung/kena limit kredit bulanan, atau langkah kompositing
-gagal di tengah jalan, lanjut TANPA thumbnail (kirim draft tanpa `thumbnail_id`); tulis di `cover_brief` bahwa cover
-gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A supaya admin bisa membuatnya manual saat review.
+**Fallback:** kalau AI Gateway tidak tersambung/kena limit kredit bulanan, atau Pillow/font tidak tersedia di
+environment yang menjalankan routine, lanjut TANPA thumbnail (kirim draft tanpa `thumbnail_id`); tulis di
+`cover_brief` bahwa cover gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A supaya admin bisa membuatnya
+manual saat review.
 
 ---
 
@@ -577,7 +515,7 @@ Body (JSON):
   "seo_title": "<Title Tag, max 60 karakter>",
   "meta_description": "<META DESCRIPTION 150-160 karakter>",
   "focus_keyphrase": "<Target Keyword>",
-  "thumbnail_id": "<file id dari Langkah 6C>",      // HILANGKAN jika cover gagal
+  "thumbnail_id": "<file id dari Langkah 6B>",      // HILANGKAN jika cover gagal
   "category_ids": ["<category_id dari Langkah 5A>"], // HILANGKAN jika kategori tidak ada
   "tag_ids": ["<tag_id dari Langkah 5B>", ...],      // HILANGKAN jika tidak ada tag relevan
   "cover_brief": "<arahan desain cover dari Langkah 6A: template, prompt AI, tipografi>"
@@ -590,7 +528,7 @@ Pemetaan output artikel → field API:
 - Ringkasan pembuka   → `excerpt`
 - [META DESCRIPTION]  → `meta_description`
 - Target Keyword      → `focus_keyphrase`
-- Cover file id       → `thumbnail_id` (dari Langkah 6C; opsional)
+- Cover file id       → `thumbnail_id` (dari Langkah 6B; opsional)
 - Website Category id → `category_ids` (opsional; lihat Langkah 5A)
 - Tag id yang relevan → `tag_ids` (opsional; lihat Langkah 5B — HANYA tag yang sudah ada di DB)
 - Arahan cover        → `cover_brief` (masuk ke deskripsi task ClickUp)
