@@ -473,9 +473,12 @@ membuat kanvas dasar 1920x1080 (isinya nanti ditutup total oleh foto asli), buka
 
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
    Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
-   Body: `{ "model": "openai/gpt-image-1", "prompt": "<prompt foto latar dari 6A>", "size": "1536x1024", "n": 1 }`
-   (kalau kena limit budget/kredit bulanan Vercel, fallback ke model lebih murah `openai/gpt-image-1-mini` dengan
-   body sama). Respons `data[0].b64_json` → decode base64 → simpan sebagai file PNG lokal sementara.
+   Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt foto latar dari 6A>", "size": "1536x1024", "n": 1 }`
+   (dikonfirmasi via test 6 Agustus 2026: model penuh `openai/gpt-image-1` ditolak `403 no_providers_available`
+   — "Free tier users do not have access to this model" — di akun Vercel AI Gateway yang dipakai saat ini, jadi
+   `-mini` adalah default yang benar-benar jalan, bukan sekadar fallback hemat biaya. Kalau akun sudah upgrade dari
+   free tier, boleh coba `openai/gpt-image-1` penuh untuk kualitas lebih tinggi). Respons `data[0].b64_json` →
+   decode base64 → simpan sebagai file PNG lokal sementara.
 2. Upload PNG foto latar ke `POST {API_BASE}/api/automations/files` (multipart field `file`) → dapat URL publik di
    `mataer-digital.is3.cloudhost.id`.
 3. `upload-asset-from-url` (Canva) dengan URL publik itu → dapat `asset_id` foto (khusus untuk artikel hari ini,
