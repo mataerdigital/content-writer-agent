@@ -25,8 +25,7 @@ Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Websit
 otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
 yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
-- API_BASE (testing): `https://api-dev.mataerdigital.com`
-  (Ganti ke domain produksi saat sudah live.)
+- API_BASE: `https://api-dev.mataerdigital.com`
 - Ambil kategori (publik, tanpa auth):
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 - Ambil tags (publik, tanpa auth):
@@ -47,6 +46,12 @@ harian mulai `01`. **Tentukan sekali di awal run** dan pakai konsisten untuk sem
 run itu (retry pakai key sama → aman, tidak dobel). Default automation harian cukup `-01`. Backend
 membatasi maksimal artikel automation per hari (bukan lewat key), jadi angka ini hanya penanda unik
 per submission; kalau perlu submit lagi di hari sama (mis. uji), naikkan ke `-02`, `-03`, dst.
+
+**Batas keras harian (dikonfirmasi via test 5 Agustus 2026):** backend menolak dengan `429` dan pesan
+`"Batas maksimal 3 draft automation per hari sudah tercapai"` setelah 3 draft automation berhasil dibuat
+di hari WIB yang sama, **berapa pun** angka `{NN}` yang dipakai (limit ini independen dari Idempotency-Key,
+jadi menaikkan `-04` dst TIDAK akan menembusnya). Kalau dapat `429` ini: jangan retry, laporkan apa adanya
+(sudah kena limit harian), dan tunggu hari kerja berikutnya WIB untuk submit lagi.
 
 **Alur pengiriman (wajib urut):**
 buat artikel (Langkah 0–4) → ambil kategori & tags (Langkah 5) → buat & upload cover (Langkah 6) →
@@ -422,30 +427,68 @@ Aturan tags:
 
 ### LANGKAH 6 — Buat Cover Article & Upload
 
+Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** —  Elemen brand baku (logo,
+tagline, dekorasi blob, pill URL) sudah baku di satu file template yang di-reuse tiap artikel — yang berubah tiap
+hari hanya foto latar (dari AI Gateway) dan judul/tipografi (di-render lokal).
+
+**Asset template baku (reusable, sudah tersedia di repo — tidak perlu dibuat ulang):**
+`.claude/skills/daily-konten-pendidikan-tinggi/assets/cover-template.png` — PNG 1920x1080 RGBA, transparan total
+kecuali logo Mataer Edutech (pojok kiri atas), tagline "Empowering Education Excellence" 3 warna (pojok kanan atas),
+dekorasi blob biru lembut (pojok kiri-bawah & kanan-bawah), dan pill "www.mataerdigital.com" (bawah tengah). Area
+`x:60-1100, y:150-700` pada kanvas ini benar-benar transparan/kosong (dikonfirmasi lewat inspeksi alpha channel) —
+itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
+
 **A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
-- Template: Gunakan template Khairi (tersimpan di folder desain tim)
-- Ukuran: 1920 x 1080 px
-- **ATURAN WAJIB — Hindari cover monoton:** Cek arahan cover 2-3 artikel terakhir. Jika deskripsi visual terasa mirip, ubah elemen visualnya (aktivitas, sudut pandang, atau elemen latar).
-- Prompt AI (sesuaikan bagian visual dengan topik artikel):
-  "Hero banner for higher education article cover. Large white negative space on top-left 40% area. Modern Indonesian campus in background. [deskripsi visual spesifik topik artikel, variasikan dari cover-cover sebelumnya]. Premium corporate design, minimalist, white and blue color scheme, cinematic lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover style, Times Higher Education editorial style, ultra high resolution, 1920x1080, no text, no logo, headline area intentionally left blank."
-- Tipografi:
-  - Baris 1: Montserrat Bold — [frasa terkuat dari judul]
-  - Baris 2: Montserrat Regular — [pelengkap judul]
-  - Posisi: area kiri atas (40% area negatif)
-  - Warna: putih atau biru tua
+- Ukuran: 1920 x 1080 px, pakai template baku di atas.
+- **Prompt AI untuk foto latar** (sesuaikan bagian visual dengan topik artikel & judul hari ini; variasikan dari
+  cover-cover sebelumnya supaya tidak monoton — cek arahan cover 2-3 artikel terakhir dulu):
+  "Hero banner for higher education article cover. Large clean white negative space covering the left 40-45 percent
+  of the frame from top to bottom. [deskripsi visual spesifik topik artikel — orang, aktivitas, lokasi kampus] filling
+  the right portion of the frame. Premium corporate design, minimalist, white and blue color scheme, cinematic
+  lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover
+  style, Times Higher Education editorial style, ultra high resolution, no text, no logo, headline area intentionally
+  left blank."
+- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI — prompt di atas sengaja minta "no text"):
+  - Kicker kecil non-bold: nama Website Category hari ini (mis. "PMB & MARKETING KAMPUS").
+  - Judul artikel bold, dipecah 2-3 baris pendek yang enak dibaca (bukan satu baris panjang mepet), mengikuti judul
+    final dari Langkah 4 — JANGAN dikarang ulang, harus sama persis dengan `title`.
+  - Posisi: rata kiri, dalam zona aman `x:75, y:260` ke bawah (kicker dulu, lalu judul multi-baris).
+  - Warna: biru brand `#1E4FA3` untuk kicker, navy gelap `#0B1F3A` untuk judul (background di zona ini putih/terang).
+- **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel; elemen
+  brand (logo/tagline/blob/pill) tetap baku, tidak diubah.
 
-**B. Generate gambar cover** memakai prompt AI di atas (via tool image-generation yang tersedia). Hasilkan gambar 1920x1080 (PNG/JPG/WEBP).
+**B. Generate & komposit** :
+1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
+   Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
+   Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt dari 6A>", "size": "1536x1024", "n": 1 }`
+   (dikonfirmasi via test 6 Agustus 2026: model penuh `openai/gpt-image-1` ditolak `403 no_providers_available`
+   — "Free tier users do not have access to this model" — di akun Vercel AI Gateway saat ini, jadi `-mini` adalah
+   default yang benar-benar jalan. Kalau akun sudah upgrade dari free tier, boleh coba model penuh untuk kualitas
+   lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
+2. **Komposit dengan Python/Pillow** (`pip install Pillow` kalau belum ada di environment):
+   - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
+   - **WAJIB — scrim legibility.** Prompt AI di 6A minta "negative space" di kiri, tapi model TIDAK selalu patuh
+     (dikonfirmasi via test 6 Agustus 2026: satu run menaruh layar/orang persis di zona teks, judul jadi tidak
+     terbaca). Jangan andalkan negative space dari foto saja — selalu tempel gradient putih semi-transparan di atas
+     foto SEBELUM template & teks: rectangle RGBA putih penuh tinggi kanvas, alpha ±235/255 dari `x:0` sampai
+     `x:700`, fade ke alpha 0 di `x:950` (linear). Ini jaminan keterbacaan apa pun isi fotonya, sekaligus efek
+     visual yang konsisten dengan gaya "area putih" pada cover-cover sebelumnya.
+   - `Image.alpha_composite()` template `cover-template.png` di atas foto+scrim (paste template PERSIS di atas —
+     urutannya penting: foto+scrim dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
+     brand selalu terlihat penuh, tidak ketutup foto).
+   - `ImageDraw.text()` untuk kicker + judul multi-baris di zona aman (lihat koordinat & warna di 6A). Font: pakai
+     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
+     `/usr/share/fonts/truetype/liberation/` sebagai pengganti Montserrat — font Montserrat asli ada di Adobe Fonts
+     tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan sandbox (sudah dicek berkali-kali, belum ada solusi).
+   - Simpan hasil akhir sebagai JPG quality ±92.
+3. Upload JPG hasil akhir ke `POST {API_BASE}/api/automations/files` (multipart field `file`, langsung dari file
+   lokal — TIDAK perlu lewat `image_url` seperti sebelumnya karena tidak ada lagi domain Canva yang perlu di-proxy).
+   Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
-**C. Upload cover** → dapatkan file id untuk thumbnail:
-```
-POST {API_BASE}/api/automations/files
-Headers: X-API-Key: {AUTOMATION_API_KEY}
-- multipart: field "file" = gambar cover hasil generate, ATAU
-- JSON: { "image_url": "<url gambar hasil generate>" }
-```
-Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
-
-Jika generate/upload cover gagal, lanjut tanpa thumbnail (kirim draft tanpa `thumbnail_id`); admin akan menambah cover saat review sesuai `cover_brief` di task ClickUp.
+**Fallback:** kalau AI Gateway tidak tersambung/kena limit kredit bulanan, atau Pillow/font tidak tersedia di
+environment yang menjalankan routine, lanjut TANPA thumbnail (kirim draft tanpa `thumbnail_id`); tulis di
+`cover_brief` bahwa cover gagal dibuat otomatis dan sertakan arahan lengkap Langkah 6A supaya admin bisa membuatnya
+manual saat review.
 
 ---
 
@@ -469,7 +512,7 @@ Body (JSON):
   "seo_title": "<Title Tag, max 60 karakter>",
   "meta_description": "<META DESCRIPTION 150-160 karakter>",
   "focus_keyphrase": "<Target Keyword>",
-  "thumbnail_id": "<file id dari Langkah 6C>",      // HILANGKAN jika cover gagal
+  "thumbnail_id": "<file id dari Langkah 6B>",      // HILANGKAN jika cover gagal
   "category_ids": ["<category_id dari Langkah 5A>"], // HILANGKAN jika kategori tidak ada
   "tag_ids": ["<tag_id dari Langkah 5B>", ...],      // HILANGKAN jika tidak ada tag relevan
   "cover_brief": "<arahan desain cover dari Langkah 6A: template, prompt AI, tipografi>"
@@ -482,7 +525,7 @@ Pemetaan output artikel → field API:
 - Ringkasan pembuka   → `excerpt`
 - [META DESCRIPTION]  → `meta_description`
 - Target Keyword      → `focus_keyphrase`
-- Cover file id       → `thumbnail_id` (dari Langkah 6C; opsional)
+- Cover file id       → `thumbnail_id` (dari Langkah 6B; opsional)
 - Website Category id → `category_ids` (opsional; lihat Langkah 5A)
 - Tag id yang relevan → `tag_ids` (opsional; lihat Langkah 5B — HANYA tag yang sudah ada di DB)
 - Arahan cover        → `cover_brief` (masuk ke deskripsi task ClickUp)

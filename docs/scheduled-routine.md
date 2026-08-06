@@ -6,17 +6,17 @@ Jadwal: **Senin–Jumat, 08:00 WIB (01:00 UTC)**. Cron (UTC): `0 1 * * 1-5`.
 
 1. Jalankan skill `daily-konten-pendidikan-tinggi` (`.claude/skills/daily-konten-pendidikan-tinggi/SKILL.md`) sampai selesai Langkah 0–6, termasuk simpan ke ClickUp (ClickUp Doc + ClickUp Task, Langkah 6).
 2. Susun payload JSON sesuai kontrak `docs/automation-article-spec.md` Bagian 6 (`title`, `content`, `excerpt`, dan opsional `category_ids`, `tag_ids`, `seo_title`, `meta_description`, `focus_keyphrase`).
-3. Jalankan `scripts/post-article.sh <path-json>` untuk POST ke `${AUTOMATION_API_BASE_URL}/api/automations/articles`. Script mengirim header `X-API-Key` (dari env `AUTOMATION_API_KEY`) dan `Idempotency-Key: article-<tanggal WIB YYYY-MM-DD>` secara otomatis.
+3. Jalankan `scripts/post-article.sh <path-json> [NN]` untuk POST ke `${AUTOMATION_API_BASE_URL}/api/automations/articles`. Script mengirim header `X-API-Key` (dari env `AUTOMATION_API_KEY`) dan `Idempotency-Key: article-<tanggal WIB YYYY-MM-DD>-<NN>` secara otomatis (`NN` opsional, default `01`; naikkan ke `02`, `03` dst kalau perlu submit ulang di hari yang sama, mis. untuk uji coba).
 4. Laporkan hasil: status HTTP, response body (`id`, `slug`, `status`, `review_url`, `clickup_task_id`), dan link ClickUp Doc/Task dari Langkah 6.
 
-Endpoint ini idempotent per hari kerja (key `article-YYYY-MM-DD` WIB) — jangan retry otomatis lebih dari sekali kalau POST gagal; laporkan errornya.
+Endpoint ini idempotent per hari kerja (key `article-YYYY-MM-DD-NN` WIB) — jangan retry otomatis lebih dari sekali kalau POST gagal; laporkan errornya.
 
 ## Env var yang wajib ada di environment yang menjalankan routine ini
 
 | Env | Keterangan |
 |---|---|
 | `AUTOMATION_API_KEY` | API key untuk header `X-API-Key` |
-| `AUTOMATION_API_BASE_URL` | Base URL backend, mis. `https://dev.mataerdigital.com` (tanpa trailing slash atau path) |
+| `AUTOMATION_API_BASE_URL` | Base URL backend, mis. `https://api-dev.mataerdigital.com` (tanpa trailing slash atau path; jangan pakai tunnel lokal developer) |
 
 ## Catatan gap
 
@@ -41,7 +41,8 @@ Setelah Langkah 6 selesai, lanjutkan:
 2. Jalankan scripts/post-article.sh <path-json> dari root repo content-writer-agent
    untuk POST ke ${AUTOMATION_API_BASE_URL}/api/automations/articles (script ini
    otomatis mengirim X-API-Key dari env AUTOMATION_API_KEY dan Idempotency-Key
-   article-<tanggal WIB YYYY-MM-DD>).
+   article-<tanggal WIB YYYY-MM-DD>-01; kalau perlu submit ulang di hari sama, jalankan
+   dengan argumen kedua NN, mis. scripts/post-article.sh <path-json> 02).
 3. Laporkan status HTTP, response body (id, slug, status, review_url, clickup_task_id),
    dan link ClickUp Doc/Task dari Langkah 6.
 
