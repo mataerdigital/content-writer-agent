@@ -54,7 +54,7 @@ sekali - endpoint idempotent per hari kerja berdasarkan Idempotency-Key.
 
 Sesi chat ini hanya bisa membuat cron **sementara** (maks 7 hari, hanya jalan saat sesi idle). Untuk jadwal permanen Sen–Jum selamanya, buat **Trigger** (scheduled) untuk repo ini melalui dashboard Claude Code on the web:
 
-1. Pilih repo `fajarmaulanaaa/content-writer-agent`, branch target (mis. `main` setelah PR ini di-merge).
+1. Pilih repo `mataerdigital/content-writer-agent`, branch target (mis. `main` setelah PR ini di-merge).
 2. Buat Trigger baru dengan cron `0 1 * * 1-5` (UTC) dan prompt di atas.
 3. Pastikan environment Trigger punya `AUTOMATION_API_KEY`, `AUTOMATION_API_BASE_URL`, dan koneksi ClickUp MCP terpasang.
 
