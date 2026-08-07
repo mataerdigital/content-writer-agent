@@ -215,6 +215,16 @@ Sebelum riset keyword, cek artikel "[ARTIKEL]" dalam 30 hari terakhir di ClickUp
 
 Hasil audit ini jadi dasar untuk menyaring topik dan sudut pandang di langkah-langkah berikutnya. Jangan lanjut ke Langkah 1 sebelum audit ini selesai.
 
+**Fallback — ClickUp MCP tidak tersambung:** kalau tools ClickUp (`clickup_search`, dst.) tidak tersedia di sesi
+ini (pernah terjadi di run Trigger terjadwal — connector tidak selalu ikut ter-bind), **JANGAN berhenti di sini**.
+Lewati audit, catat di ringkasan akhir bahwa audit ClickUp tidak bisa dijalankan (connector tidak tersambung), lalu
+tetap lanjut ke Langkah 1 dengan asumsi konservatif: hindari topik yang jelas-jelas baru saja dibahas (BKD, IKU,
+SPMI, Akreditasi, Neo Feeder/PDDikti — lihat daftar topik yang sering berulang di Langkah 3), dan pilih Pilar/Website
+Category yang jarang dipakai secara default (Insight Pendidikan Tinggi, Spotlight Kampus, atau PMB & Marketing
+Kampus) alih-alih menebak distribusi aktual. Langkah 8 (arsip ClickUp Doc) juga di-skip dengan catatan yang sama
+kalau connector masih belum tersambung saat itu — draft tetap WAJIB dikirim ke website di Langkah 7 walau Langkah
+0/8 di-skip, karena itu tidak bergantung pada ClickUp MCP.
+
 ---
 
 ### LANGKAH 1 — Riset Keyword Trending
