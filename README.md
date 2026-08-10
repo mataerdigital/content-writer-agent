@@ -32,7 +32,7 @@ scripts/
 | Env | Untuk apa |
 |---|---|
 | `AUTOMATION_API_KEY` | Auth ke endpoint `POST /api/automations/*` di backend website |
-| `AUTOMATION_API_BASE_URL` | Base URL backend, mis. `https://api-dev.mataerdigital.com` |
+| `AUTOMATION_API_BASE_URL` | Base URL backend, `https://api.mataerdigital.com` (production) |
 | `AI_GATEWAY_API_KEY` | Auth ke Vercel AI Gateway untuk generate foto cover |
 
 Tanpa `AI_GATEWAY_API_KEY`, artikel tetap terkirim tapi tanpa cover (lihat bagian Fallback di `SKILL.md`

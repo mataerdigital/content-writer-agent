@@ -25,11 +25,11 @@ Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Websit
 otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
 yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
-- API_BASE (dev): `https://api-dev.mataerdigital.com`
-  (Sebelumnya sempat memakai `https://pc-fajar.campusupdate.co.id` — itu tunnel ke mesin lokal salah
-  satu developer dan TIDAK boleh dipakai lagi. Gunakan env `AUTOMATION_API_BASE_URL` bila tersedia di
-  environment yang menjalankan routine; nilainya harus `https://api-dev.mataerdigital.com` untuk dev.
-  Ganti ke domain produksi saat sudah live.)
+- API_BASE (production): `https://api.mataerdigital.com`
+  (WAJIB pakai env `AUTOMATION_API_BASE_URL` bila tersedia di environment yang menjalankan routine — nilainya
+  harus `https://api.mataerdigital.com` untuk production. JANGAN pernah pakai `https://api-dev.mataerdigital.com`
+  (dev/test) atau `https://pc-fajar.campusupdate.co.id` (tunnel lokal developer lama) di jalur ini — keduanya
+  TIDAK boleh dipakai untuk draft yang benar-benar dikirim ke website live.)
 - Cover artikel dibuat via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di environment yang
   menjalankan routine) + kompositing lokal Python/Pillow dengan template brand baku — TIDAK pakai Canva
   (lihat Langkah 6).
@@ -214,6 +214,16 @@ Sebelum riset keyword, cek artikel "[ARTIKEL]" dalam 30 hari terakhir di ClickUp
 - Tidak ada format judul atau gaya visual cover yang monoton.
 
 Hasil audit ini jadi dasar untuk menyaring topik dan sudut pandang di langkah-langkah berikutnya. Jangan lanjut ke Langkah 1 sebelum audit ini selesai.
+
+**Fallback — ClickUp MCP tidak tersambung:** kalau tools ClickUp (`clickup_search`, dst.) tidak tersedia di sesi
+ini (pernah terjadi di run Trigger terjadwal — connector tidak selalu ikut ter-bind), **JANGAN berhenti di sini**.
+Lewati audit, catat di ringkasan akhir bahwa audit ClickUp tidak bisa dijalankan (connector tidak tersambung), lalu
+tetap lanjut ke Langkah 1 dengan asumsi konservatif: hindari topik yang jelas-jelas baru saja dibahas (BKD, IKU,
+SPMI, Akreditasi, Neo Feeder/PDDikti — lihat daftar topik yang sering berulang di Langkah 3), dan pilih Pilar/Website
+Category yang jarang dipakai secara default (Insight Pendidikan Tinggi, Spotlight Kampus, atau PMB & Marketing
+Kampus) alih-alih menebak distribusi aktual. Langkah 8 (arsip ClickUp Doc) juga di-skip dengan catatan yang sama
+kalau connector masih belum tersambung saat itu — draft tetap WAJIB dikirim ke website di Langkah 7 walau Langkah
+0/8 di-skip, karena itu tidak bergantung pada ClickUp MCP.
 
 ---
 
