@@ -25,11 +25,11 @@ Setelah artikel selesai ditulis, draft dikirim ke website Mataer via API. Websit
 otomatis membuat task ClickUp review + mengirim email ke tim kreatif; admin sosmed
 yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
-- API_BASE (dev): `https://api-dev.mataerdigital.com`
-  (Sebelumnya sempat memakai `https://pc-fajar.campusupdate.co.id` — itu tunnel ke mesin lokal salah
-  satu developer dan TIDAK boleh dipakai lagi. Gunakan env `AUTOMATION_API_BASE_URL` bila tersedia di
-  environment yang menjalankan routine; nilainya harus `https://api-dev.mataerdigital.com` untuk dev.
-  Ganti ke domain produksi saat sudah live.)
+- API_BASE (production): `https://api.mataerdigital.com`
+  (WAJIB pakai env `AUTOMATION_API_BASE_URL` bila tersedia di environment yang menjalankan routine — nilainya
+  harus `https://api.mataerdigital.com` untuk production. JANGAN pernah pakai `https://api-dev.mataerdigital.com`
+  (dev/test) atau `https://pc-fajar.campusupdate.co.id` (tunnel lokal developer lama) di jalur ini — keduanya
+  TIDAK boleh dipakai untuk draft yang benar-benar dikirim ke website live.)
 - Cover artikel dibuat via **Vercel AI Gateway** (env `AI_GATEWAY_API_KEY` wajib ada di environment yang
   menjalankan routine) + kompositing lokal Python/Pillow dengan template brand baku — TIDAK pakai Canva
   (lihat Langkah 6).

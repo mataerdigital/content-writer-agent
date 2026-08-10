@@ -19,8 +19,12 @@ Claude (skill author) membuat 1 draft artikel per hari kerja (Sen–Jum, 08:00 W
 - Endpoint ingestion `POST /api/automations/articles` yang dipanggil Claude. ✅
 - Artikel dibuat selalu `status = draft` dan `origin = automation`; endpoint ini **tidak bisa** mem-publish. ✅
 - Author di-resolve dari email `AUTOMATION_AUTHOR_EMAIL` (default `creative@mataerdigital.com`). Kalau user tak ada → error jelas + log. ✅
-- **Idempotency** (anti dobel saat retry): key `article-YYYY-MM-DD` (WIB) → maks 1 artikel/hari kerja. Kalau sudah ada → kembalikan yang sama.
-  - ❓ Perlu konfirmasi: benar 1/hari, atau boleh >1/hari?
+- **Idempotency** (anti dobel saat retry): key `article-YYYY-MM-DD-NN` (WIB, `NN` = angka urut 2 digit mulai `01`).
+  Key yang sama dua kali → kembalikan artikel yang sudah ada (`duplicated:true`), tidak dibuat dobel.
+  - **Dikonfirmasi via test 5 Agustus 2026:** backend membatasi maksimal **3 draft automation per hari kerja WIB**
+    independen dari `NN` (429 `"Batas maksimal 3 draft automation per hari sudah tercapai"` pada draft ke-4,
+    berapa pun `NN`-nya). Jadi `NN` hanya penanda unik per submission dalam batas 3/hari itu, bukan cara menembus
+    limitnya.
 - Thumbnail (MVP Opsi A): kosong saat draft; admin isi saat review. ✅
 - ClickUp task dibuat saat draft dibuat ✅ — judul `"Review: <title>"`, assignee = admin sosmed, deskripsi berisi review URL, dan simpan `clickup_task_id` di artikel.
 - Email dibuat saat draft dibuat ✅ — ke `creative@mataerdigital.com`, membawa `title` + `review_url`.
