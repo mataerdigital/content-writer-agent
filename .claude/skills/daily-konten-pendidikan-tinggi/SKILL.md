@@ -37,6 +37,11 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
   `GET {API_BASE}/api/category/listPublic?type=article&limit=100`
 - Ambil tags (publik, tanpa auth):
   `GET {API_BASE}/api/tags/listPublic?type=article&limit=100`
+- **Cek artikel published untuk cross-linking:** TIDAK ADA endpoint publik untuk list/search artikel
+  (`/api/article/listPublic` dan variasi nama lain sudah dicoba, semua `404` — dikonfirmasi Agustus 2026).
+  Satu-satunya cara: `GET {API_BASE%/api}/sitemap.xml` (root domain, bukan di bawah `/api`). Kalau ini masih
+  jadi hambatan rutin untuk cross-linking (lihat Langkah 4 poin 11), sampaikan ke tim backend Mataer supaya
+  menambah endpoint publik semacam `/api/article/listPublic` — bukan sesuatu yang bisa dibuat dari sisi skill ini.
 - Upload cover (gambar) → dapat file id untuk thumbnail:
   `POST {API_BASE}/api/automations/files` (header `X-API-Key`)
   - multipart: field `file` = gambar (PNG/JPG/WEBP, maks 10MB), ATAU
@@ -383,7 +388,25 @@ Arsip ke ClickUp Doc (Langkah 8)
 6-8. [H2] Subjudul isi (jumlah sesuai batas per pilar)
 9. Paragraf penutup ringkas
 10. [CTA] — wajib ada, produk yang genuinely relevan
-11. [CROSS LINKING / SARAN INTERNAL LINK] — minimal 2, maksimal 5 link, berdasarkan Topic Cluster yang sama (contoh: artikel Neo Feeder → link ke artikel Validasi PDDikti, Error Neo Feeder, SIAKAD). Setiap link wajib diverifikasi lewat riwayat ClickUp/clickup_search; jika link valid yang ditemukan kurang dari 2, cukup cantumkan yang valid saja dan catat "cross-link belum lengkap, cluster ini masih perlu artikel pendukung".
+11. [CROSS LINKING / SARAN INTERNAL LINK] — minimal 2, maksimal 5 link, berdasarkan Topic Cluster yang sama (contoh: artikel Neo Feeder → link ke artikel Validasi PDDikti, Error Neo Feeder, SIAKAD).
+   **WAJIB dibaca sebelum menulis bagian ini — cara verifikasi link BENAR-BENAR valid (bukan cuma "ada di ClickUp"):**
+   - ClickUp Doc/task archive (Langkah 0/8) **BUKAN bukti artikel sudah live di website** — itu cuma arsip draft, banyak
+     di antaranya belum pernah dipublish atau bahkan masih draft permanen. Jangan jadikan riwayat ClickUp saja sebagai
+     dasar `<a href>`.
+   - Satu-satunya cara verifikasi URL publik yang benar-benar valid: cek `GET {API_BASE}/sitemap.xml` (dev:
+     `https://dev.mataerdigital.com/sitemap.xml`) — kalau sitemap-nya statis dan tidak memuat URL per-artikel
+     (baru berisi halaman utama seperti `/news`, `/product/...`, dst — kondisi ini dikonfirmasi masih terjadi per
+     Agustus 2026), berarti **belum ada artikel yang benar-benar published dan bisa dilink**. Tidak ada endpoint
+     publik lain (`/api/article/listPublic` dst — SUDAH DICOBA, semua 404) untuk mengecek ini, jadi sitemap adalah
+     satu-satunya sumber kebenaran yang tersedia untuk automation ini.
+   - Kalau sitemap belum memuat artikel apa pun yang relevan (atau kurang dari 2 yang match Topic Cluster): **JANGAN
+     sisipkan `<a href>` ke URL manapun** (termasuk URL yang "kelihatannya pasti benar" seperti `/news/<slug>` —
+     jangan ditebak, source of truth-nya cuma sitemap). Tulis bagian ini sebagai catatan teks biasa: "cross-link
+     belum bisa disertakan — sitemap belum memuat artikel published yang relevan di Topic Cluster [nama cluster]."
+     Sertakan catatan yang sama di `cover_brief` Langkah 7 supaya admin tahu ini bukan kelalaian, tapi menunggu
+     katalog artikel published cukup banyak dulu.
+   - Begitu sitemap mulai memuat URL artikel individual, gunakan URL persis dari `<loc>` sitemap sebagai `href`
+     — jangan konstruksi URL sendiri dari slug.
 12. [KEYWORD TAMBAHAN] 5-8 keyword LSI
 13. [REKOMENDASI ALT TEXT GAMBAR]
 
