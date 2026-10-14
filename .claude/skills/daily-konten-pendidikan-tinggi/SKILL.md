@@ -636,11 +636,16 @@ memakainya, brand sudah cukup terwakili lewat header/footer halaman itu sendiri.
    - **WAJIB — dark top vignette, bukan panel putih.** Supaya judul putih **tidak pernah bertabrakan/tenggelam**
      dengan foto apa pun isinya (masalah yang pernah terjadi di versi panel-putih: foto terang/ramai di zona teks
      bikin kontras lemah), terapkan DUA layer overlay RGBA hitam/navy gelap (`#0B1F3A`) di atas foto SEBELUM teks:
-     1. **Dim global tipis** ke seluruh kanvas: alpha ±45/255 rata di semua piksel, supaya foto sedikit lebih gelap
+     1. **Dim global tipis** ke seluruh kanvas: alpha ±50/255 rata di semua piksel, supaya foto sedikit lebih gelap
         secara keseluruhan dan teks putih di mana pun tetap kontras.
-     2. **Vignette atas** full lebar kanvas (bukan cuma sisi kiri): alpha ±205/255 di `y:0`, fade linear ke alpha 0
-        di `y:520` — ini area tempat kicker+judul duduk. Hasilnya meniru gaya vignette gelap-ke-foto-asli pada cover
-        artikel yang sudah tayang di mataerdigital.com/news.
+     2. **Vignette atas berbentuk plateau, BUKAN fade linear dari `y:0`.** Fade linear dari puncak langsung di `y:0`
+        terbukti gagal saat diuji dengan foto ramai (dikonfirmasi 14 Oktober 2026): baris judul terakhir dari judul
+        3-baris jatuh di zona `y:~240-310` tempat alpha sudah meluruh ke ±80/255, kontrasnya lemah dan nyaris
+        bertabrakan dengan detail foto (mis. teks di layar monitor). Perbaikannya: alpha **tetap penuh (plateau)**
+        sepanjang seluruh blok teks (kicker + sampai 3 baris judul), baru fade ke 0 setelahnya —
+        alpha ±215/255 rata dari `y:0` sampai `y:380` (plateau, menutupi kicker+judul 3 baris apa pun panjangnya),
+        fade linear ke alpha 0 di `y:620`. Hasilnya meniru gaya vignette gelap-ke-foto-asli pada cover artikel yang
+        sudah tayang di mataerdigital.com/news, dan judul tetap terbaca penuh terlepas dari berapa baris yang dipakai.
      Gunakan numpy untuk generate gradient array lalu `Image.alpha_composite()`, sama seperti pola scrim versi lama,
      cuma arah & warnanya beda (atas-gelap, bukan kiri-putih).
    - **TIDAK ADA lagi** langkah composite `cover-template.png` — lewati sepenuhnya.
