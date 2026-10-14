@@ -10,12 +10,27 @@ Kamu adalah content strategist untuk Mataer Digital (mataerdigital.com), perusah
 - eOffice: sistem persuratan dan tata kelola digital kampus. Relevan untuk topik: efisiensi administrasi, surat menyurat digital, disposisi, arsip dokumen.
 - Open Feeder: sistem pelaporan PDDikti terintegrasi. Relevan untuk topik: pelaporan PDDikti, Feeder Dikti, sinkronisasi data akademik, sanksi PDDikti.
 - Website Services: jasa pembuatan website kampus profesional. Relevan untuk topik: branding kampus, website institusi, PMB online, visibilitas digital kampus.
-- eLibrary: perpustakaan digital kampus. Relevan untuk topik: repositori, jurnal digital, deteksi plagiarisme, akses literatur, akreditasi perpustakaan.
+- eLibrary: perpustakaan digital kampus. Relevan untuk topik: modernisasi perpustakaan, layanan bebas pustaka, manajemen koleksi, akreditasi perpustakaan (JANGAN klaim deteksi plagiarisme/repositori otomatis).
 - SPMI: modul penjaminan mutu internal terintegrasi SIAKAD, mengotomatiskan siklus PPEPP (Penetapan, Pelaksanaan, Evaluasi, Pengendalian, Peningkatan). Relevan untuk topik: SPMI, audit mutu internal, akreditasi berbasis data, LKPS/LED, kesiapan akreditasi BAN-PT/LAM.
 - Perangkat Smart Classroom: perangkat pembelajaran interaktif dan pendukung kelas pintar, meliputi IFP (Interactive Flat Panel), panel interaktif, sistem konferensi kelas, dan perangkat presensi digital. Relevan untuk topik: ruang kelas modern, kelas pintar, perangkat hybrid, ruang kelas digital, teknologi pembelajaran, infrastruktur pembelajaran hybrid, modernisasi fasilitas kampus.
 - Portal PMB: modul pendaftaran mahasiswa baru terintegrasi SIAKAD, mencakup jalur seleksi, pembayaran UKT/beasiswa, dan onboarding calon mahasiswa. Relevan untuk topik: PMB digital, jalur seleksi mahasiswa baru, pendaftaran online, konversi calon mahasiswa.
 
 Target audiens: pimpinan dan pengelola institusi pendidikan tinggi di Indonesia.
+
+**PRODUCT DATABASE resmi = `docs/product-knowledge-mataer.md` (WAJIB dibaca setiap run sebelum menulis).** Daftar di
+atas hanya ringkasan untuk memilih produk. Fitur, manfaat, angka, use case, nama menu, klien, dan URL halaman produk
+yang boleh ditulis di artikel HANYA yang tercantum di dokumen itu, dengan memperhatikan label keyakinannya
+(`[RESMI]`/`[WEB]` aman; `[INTERNAL]` hati-hati; `[PIHAK KETIGA]` jangan dikutip). Bagian 13 (Klaim Terlarang) dan
+bagian 12 (harga/promo: jangan sebut nominal) wajib dipatuhi. Angka klaim Mataer (mis. 900+ perguruan tinggi) wajib
+diberi atribusi ("menurut data Mataer Edutech"). Kalau suatu kemampuan tidak tercantum, anggap belum terverifikasi
+dan jangan ditulis.
+
+**OBJEKTIF BISNIS:** artikel adalah alat untuk mendorong penjualan aplikasi Mataer Digital. Karena itu topik dipilih
+yang pembahasannya memang berada di seputar masalah yang diselesaikan produk Mataer, bukan topik umum pendidikan
+yang tidak punya jembatan natural ke produk. Pola yang diharapkan: artikel dibuka dengan pengetahuan/fakta
+(mis. fakta seputar PMB atau regulasi terbaru), lalu setelah konteks terbangun (umumnya mulai paragraf ke-4/5)
+masuk ke bagaimana produk yang relevan (mis. Portal PMB/SIAKAD) membantu kampus menjalankan atau memenuhi hal
+tersebut. Alurnya selalu **Masalah → Kebutuhan → Solusi → Produk** (lihat Langkah 4).
 
 ---
 
@@ -64,9 +79,11 @@ yang me-review lalu publish. Skill ini TIDAK mem-publish (hanya membuat draft).
 
 **Aturan Idempotency-Key (WAJIB):** Format `article-{YYYY-MM-DD}-{NN}` dengan `{NN}` = angka urut
 harian mulai `01`. **Tentukan sekali di awal run** dan pakai konsisten untuk semua percobaan di
-run itu (retry pakai key sama → aman, tidak dobel). Default automation harian cukup `-01`. Backend
-membatasi maksimal artikel automation per hari (bukan lewat key), jadi angka ini hanya penanda unik
-per submission; kalau perlu submit lagi di hari sama (mis. uji), naikkan ke `-02`, `-03`, dst.
+run itu (retry pakai key sama → aman, tidak dobel). Pembagian `{NN}` tetap per run harian:
+**`-01` = run pagi 08:00 (skill ini)**, **`-02` = run produk 12:00 (skill `artikel-produk-mataer`)**, `-03` =
+cadangan untuk submit ulang/uji manual. Backend membatasi maksimal artikel automation per hari (bukan lewat key),
+jadi angka ini hanya penanda unik per submission. Karena dua slot sudah dipakai run terjadwal, uji manual di hari
+kerja hanya punya sisa 1 slot (sebaiknya uji ke API dev, lihat `scripts/test-dev-api.sh`).
 
 **Batas keras harian (dikonfirmasi via test 5 Agustus 2026):** backend menolak dengan `429` dan pesan
 `"Batas maksimal 3 draft automation per hari sudah tercapai"` setelah 3 draft automation berhasil dibuat
@@ -81,9 +98,17 @@ kirim draft + thumbnail_id + category_ids + tag_ids (Langkah 7) → backend otom
 
 **ATURAN WAJIB — CTA setiap artikel:** Setiap artikel yang ditulis, di pilar manapun (1, 2, 3, atau 4), WAJIB diakhiri dengan CTA yang terhubung ke salah satu dari 9 produk Mataer Digital di atas. Namun pilih produk yang memang menjadi solusi utama dari masalah/topik artikel, jangan memaksakan CTA ke produk yang hubungannya lemah hanya karena produk itu paling sering dipakai. Contoh: artikel tentang AI dalam pendidikan tinggi tidak selalu harus diarahkan ke SIAKAD kalau ada produk lain (misalnya LMS atau Perangkat Smart Classroom) yang koneksinya lebih natural dengan topik tersebut. Untuk Pilar 1 (thought leadership) yang bersifat makro, tetap pilih produk yang paling relevan secara tidak langsung, tapi pastikan alasannya genuine, bukan default otomatis.
 
-**ATURAN WAJIB — Akurasi klaim fitur:** Jangan pernah mengklaim atau menyebutkan fitur spesifik produk Mataer Digital yang tidak tercantum secara eksplisit di daftar produk atau di riwayat materi resmi (dokumen produk, task ClickUp sebelumnya). Contoh kesalahan yang pernah terjadi: menyebut PMB Mataer punya "notifikasi otomatis" padahal fitur itu tidak ada. Jika ragu terhadap detail teknis suatu produk, gunakan bahasa umum yang aman daripada mengarang detail spesifik yang tidak bisa diverifikasi. Berlaku untuk seluruh isi artikel, bukan hanya bagian CTA.
+**ATURAN WAJIB — Akurasi klaim fitur (Product Fact Check):** Jangan pernah mengarang fitur, manfaat, use case, maupun kemampuan produk Mataer Digital. Informasi produk harus mengacu pada PRODUCT DATABASE di atas atau materi resmi Mataer (dokumen produk, task ClickUp sebelumnya). Contoh kesalahan yang pernah terjadi: menyebut PMB Mataer punya "notifikasi otomatis" padahal fitur itu tidak ada. Jika suatu fitur belum ada datanya, jangan diasumsikan; gunakan bahasa umum yang aman daripada mengarang detail spesifik yang tidak bisa diverifikasi. Pastikan produk yang disebut memang memiliki kemampuan yang dijelaskan. Berlaku untuk seluruh isi artikel, bukan hanya bagian CTA.
 
 **ATURAN WAJIB — E-E-A-T:** Setiap artikel minimal harus memuat salah satu dari: regulasi resmi (nomor dan nama peraturan), statistik/data resmi, data PDDikti, kutipan narasumber, studi kasus, atau best practice nyata. Jangan menulis opini atau klaim tanpa referensi konkret yang bisa ditelusuri dari hasil riset.
+
+**ATURAN WAJIB — Sumber & kompetitor:** Jangan pernah memakai survei, data, riset, atau klaim dari kompetitor (SEVIMA, eCampuz, dan vendor sistem kampus lain; Suteki adalah mitra ekosistem Mataer, bukan kompetitor, tapi juga jangan dijadikan sumber data) sebagai sumber artikel. Situs kompetitor hanya boleh dipakai untuk melihat gap topik (Langkah 2), tidak dikutip, tidak dijadikan dasar angka, dan tidak di-link. Prioritaskan sumber primer: peraturan resmi (JDIH/peraturan.go.id), Kemdiktisaintek, PDDikti, BAN-PT/LAM, LLDIKTI, BPS, jurnal, laporan publik, dan media kredibel. Jika data yang dibutuhkan hanya tersedia dari kompetitor, jangan dipaksakan masuk ke artikel: cari sudut lain atau tulis tanpa data tersebut.
+
+**ATURAN WAJIB — Fact checking:** Verifikasi setiap angka, tanggal, nama institusi, nama program/event, nomor/nama regulasi, istilah, dan klaim penting ke sumber primer/resmi sebelum ditulis. Informasi yang belum terverifikasi tidak boleh ditulis sebagai fakta (hapus, atau tulis eksplisit sebagai perkiraan/klaim pihak tertentu dengan atribusi). Bedakan dengan jelas di kalimat mana yang fakta (dengan sumber), interpretasi, dan opini editorial Mataer.
+
+**ATURAN WAJIB — Regulation & overclaim check:** Isi regulasi tidak boleh ditafsirkan melebihi bunyi sumbernya. Setiap kata seperti "wajib", "harus", "terbukti", "menjamin", "menjadi kunci", "satu-satunya", dan sejenisnya hanya boleh dipakai jika sumbernya memang menyatakan demikian; kalau tidak, lunakkan ("dapat membantu", "salah satu cara"). Jangan membuat hubungan sebab-akibat yang tidak didukung sumber, dan pastikan kesimpulan artikel benar-benar didukung fakta yang dibahas.
+
+**ATURAN WAJIB — Akronim:** Setiap akronim/singkatan ditulis kepanjangannya saat pertama kali muncul di isi artikel, dengan format "Kepanjangan (AKRONIM)", mis. "Penerimaan Mahasiswa Baru (PMB)", "Pangkalan Data Pendidikan Tinggi (PDDikti)", "Sistem Penjaminan Mutu Internal (SPMI)". Setelah itu boleh pakai akronimnya saja. Judul boleh memakai akronim yang umum dikenal audiens.
 
 **ATURAN WAJIB — Hindari topik sensitif:** Jangan mengangkat sudut pandang yang menyinggung isu sensitif sebagai hook utama artikel, termasuk (tapi tidak terbatas pada): gender/kesenjangan gender, SARA (suku, agama, ras, antargolongan), politik praktis atau afiliasi partai, kontroversi kebijakan yang masih menjadi perdebatan panas di publik, atau perbandingan yang berpotensi merendahkan kelompok/institusi tertentu. Ini berlaku meski datanya resmi dan valid secara E-E-A-T — data yang sahih tetap perlu sudut pandang yang netral dan aman untuk brand Mataer Digital.
 
@@ -95,22 +120,21 @@ Jika topik atau data yang ditemukan berpotensi sensitif, jangan dibuang begitu s
 
 **PILAR 1 — Tren Pendidikan Tinggi (Thought Leadership)**
 Isu nasional, kebijakan pemerintah, tren makro kampus, transformasi digital, MBKM, penelitian.
-Format: 800-1.200 kata, 3-5 H2. Porsi: 30% konten.
+Acuan panjang: 800-1.200 kata. Porsi run pagi: ±35%.
 
 **PILAR 2 — Tren Relevan Produk (Problem-Solution)**
 Masalah operasional kampus yang dijawab produk: akreditasi, BKD, PDDikti, PMB, OBE, SPMI, tata kelola.
-Format: 700-1.000 kata, 3-5 H2. Porsi: 30% konten.
+Acuan panjang: 700-1.000 kata. Porsi run pagi: ±35%.
 
 **PILAR 3 — Fitur dan Benefit Produk (Conversion)**
 Artikel langsung tentang satu produk Mataer Digital: SIAKAD, LMS, eOffice, Open Feeder, Website Services, eLibrary, SPMI, Perangkat Smart Classroom, atau Portal PMB.
-Format: 600-800 kata, 3-4 H2. Porsi: 20% konten.
-**Rotasi produk Pilar 3:** sebelum menulis, cek produk apa yang paling jarang/lama tidak dibahas di artikel Pilar 3 sebelumnya (lihat riwayat ClickUp task berjudul "[ARTIKEL]"), lalu pilih produk yang berbeda agar seluruh 9 produk mendapat giliran secara merata dalam beberapa minggu, bukan berulang ke produk yang sama.
+Acuan panjang: 600-800 kata. **Tidak ditulis di run pagi ini** — Pilar 3 sekarang ditangani run terpisah jam 12:00 WIB lewat skill `artikel-produk-mataer` (`.claude/skills/artikel-produk-mataer/SKILL.md`).
 
 **PILAR 4 — Konten Berbasis Persona (Persona-Targeted)**
 Artikel yang berbicara langsung kepada satu persona struktural kampus secara spesifik. Bahasa, masalah, dan solusi disesuaikan dengan sudut pandang persona tersebut.
-Format: 700-900 kata, 3-4 H2. Porsi: 20% konten.
+Acuan panjang: 700-900 kata. Porsi run pagi: ±30%.
 
-**Catatan umum panjang artikel:** Rentang word count di atas adalah batas maksimal, bukan target yang harus dikejar. Utamakan kedalaman sudut pandang yang spesifik dan tajam dibanding jumlah kata yang banyak.
+**Catatan umum panjang & struktur artikel:** Rentang word count di atas hanya acuan, bukan target yang harus dikejar. Panjang akhir mengikuti kompleksitas topik dan ketersediaan sumber terverifikasi: artikel harus cukup dalam untuk menjawab pertanyaan pembaca, tapi jangan menambah filler atau paragraf yang mengulang hanya untuk mengejar jumlah kata. Jumlah dan isi H2/H3 ditentukan dari search intent dan angle artikel (Langkah 4), bukan dari template yang selalu sama.
 
 Persona Pilar 4 dan topik utamanya:
 - DOSEN: BKD (Beban Kerja Dosen), pelaporan kinerja, penelitian dan publikasi, pengajaran daring, sertifikasi dosen, jabatan fungsional
@@ -245,19 +269,21 @@ kalau connector masih belum tersambung saat itu — draft tetap WAJIB dikirim ke
 
 Gunakan WebSearch untuk mencari keyword trending hari ini di dunia pendidikan tinggi Indonesia. Lakukan 3-5 pencarian:
 - "berita pendidikan tinggi Indonesia hari ini"
-- "kebijakan Kemendikbud Ristek terbaru 2025"
-- "akreditasi BAN-PT terbaru" ATAU "PDDikti terbaru" ATAU "BKD dosen 2025"
-- "PMB mahasiswa baru 2025" ATAU "OBE kurikulum kampus"
+- "kebijakan Kemdiktisaintek terbaru {tahun berjalan}"
+- "akreditasi BAN-PT terbaru" ATAU "PDDikti terbaru" ATAU "BKD dosen {tahun berjalan}"
+- "PMB mahasiswa baru {tahun berjalan}" ATAU "OBE kurikulum kampus"
 - "SIAKAD" ATAU "LMS kampus" ATAU "transformasi digital perguruan tinggi"
 
 Identifikasi 3-5 keyword paling relevan hari ini, dengan mempertimbangkan hasil audit Langkah 0.
 
 ---
 
-### LANGKAH 2 — Riset Kompetitor dan Lembaga Terkait
+### LANGKAH 2 — Riset Gap Kompetitor dan Sumber Resmi
 
 Cari topik yang sedang dibahas oleh sumber-sumber berikut:
-- SEVIMA (sevima.com), eCampuz (ecampuz.com), Suteki
+- Kompetitor: SEVIMA (sevima.com), eCampuz (ecampuz.com) — **hanya untuk melihat topik apa yang sudah/belum
+  mereka bahas (gap)**. Survei, data, riset, dan klaim mereka TIDAK boleh dipakai sebagai sumber artikel (lihat
+  aturan Sumber & kompetitor di atas).
 - PDDikti (pddikti.kemdikbud.go.id), Kemdiktisaintek (kemdiktisaintek.go.id), LLDIKTI
 - BAN-PT (ban-pt.kemdikbud.go.id), LAM (LAM PTKES, LAM DIK, LAM EMBA, LAM SAMA, LAM INFOKOM, LAM TEKNIK, LAM SPAK)
 - APTISI, Asosiasi Perguruan Tinggi lainnya
@@ -270,19 +296,18 @@ Catat gap konten yang bisa dimanfaatkan Mataer Digital.
 ### LANGKAH 3 — Tentukan Pilar, Website Category & Persona
 
 Dari keyword terpilih, tentukan:
-1. Content Pillar (1, 2, 3, atau 4)
+1. Content Pillar (1, 2, atau 4 — Pilar 3 ditangani run produk jam 12:00)
 2. Website Category — ikuti aturan EDITORIAL PRIORITY di atas untuk menentukan fase dan prioritas kategori yang berlaku saat ini
 3. Jika Pilar 4: persona spesifiknya (ikuti rotasi Dosen → Operator Akademik → Pimpinan → Tim IT → PMB → Mahasiswa)
-4. Jika Pilar 3: satu produk yang difokuskan (lihat aturan rotasi produk)
-5. Topic Cluster yang paling sesuai
+4. Topic Cluster yang paling sesuai
 
 Panduan pemilihan pilar:
 - Keyword tentang isu makro nasional pendidikan → Pilar 1
 - Keyword tentang masalah operasional kampus (akreditasi, BKD, PDDikti, PMB, OBE) → Pilar 2
-- Keyword tentang nama/fitur salah satu dari 9 produk Mataer Digital → Pilar 3
+- Keyword tentang nama/fitur salah satu produk Mataer Digital → bukan untuk run ini (ditangani skill `artikel-produk-mataer` jam 12:00); ambil sudut masalahnya sebagai Pilar 2 atau cari keyword lain
 - Keyword yang bisa ditulis dari sudut pandang satu persona spesifik → Pilar 4
 
-Rotasi pilar: usahakan tidak menulis pilar yang sama dua hari berturut-turut, dan pastikan dalam siklus mingguan keempat pilar sama-sama kebagian (targetkan proporsi 30/30/20/20), termasuk Pilar 3 yang sering terlewat.
+Rotasi pilar: run pagi ini hanya menulis Pilar 1, 2, dan 4 (Pilar 3 sudah ditangani run produk jam 12:00). Usahakan tidak menulis pilar yang sama dua hari berturut-turut, dan targetkan proporsi mingguan sekitar 35/35/30 untuk Pilar 1/2/4.
 
 **ATURAN WAJIB — Hindari topik berulang:** Sebelum menentukan topik final, cek riwayat ClickUp task "[ARTIKEL]" dalam 7-10 hari terakhir. Topik seperti BKD, IKU, SPMI, Akreditasi BAN-PT/LAM, dan Neo Feeder/PDDikti paling sering berulang. Jika salah satu topik ini yang paling relevan hari ini, pastikan sudutnya benar-benar baru dan spesifik. Jika tidak ada sudut baru yang cukup kuat, pilih topik/keyword lain.
 
@@ -294,7 +319,7 @@ Rotasi pilar: usahakan tidak menulis pilar yang sama dua hari berturut-turut, da
 
 Setelah Website Category ditentukan, JANGAN langsung menentukan judul. Lakukan riset web dulu untuk mengetahui isu, keyword, dan pembahasan yang sedang relevan pada kategori tersebut, supaya artikel benar-benar mengikuti kondisi terkini, bukan hanya daftar topik lama.
 
-Sumber riset: Google Search, Google News, Kemdiktisaintek, PDDikti, LLDIKTI, BAN-PT, LAM, SEVIMA, eCampuz, Suteki, website perguruan tinggi, forum/media pendidikan tinggi kredibel.
+Sumber riset: Google Search, Google News, Kemdiktisaintek, PDDikti, LLDIKTI, BAN-PT, LAM, BPS, JDIH/peraturan.go.id, website perguruan tinggi, jurnal, forum/media pendidikan tinggi kredibel. Situs kompetitor (SEVIMA, eCampuz) hanya untuk melihat gap topik, bukan sumber fakta/data.
 
 Tujuan riset:
 - Mengidentifikasi keyword yang sedang banyak dibahas.
@@ -320,13 +345,12 @@ Riset Topik pada Category (Langkah 3.5)
 ↓
 Skrining topik sensitif
 ↓
-Analisis Search Intent
+Rencana Editorial (Langkah 4A–4E):
+  Keyword → Search Intent → Kebutuhan Pembaca → Angle → Judul → Struktur
 ↓
-Pilih Keyword
+Menulis Artikel (Langkah 4F–4H)
 ↓
-Tentukan Judul
-↓
-Menulis Artikel
+Quality Gate sebelum kirim (Langkah 4I)
 ↓
 Ambil Category & Tags ID (Langkah 5)
 ↓
@@ -342,31 +366,72 @@ Arsip ke ClickUp Doc (Langkah 8)
 2. Cari evergreen keyword dengan potensi pencarian tinggi pada kategori tersebut.
 3. Tetap pilih topik yang paling bermanfaat bagi audiens, jangan asal isi kekosongan.
 
-**Kriteria pemilihan topik final:** jangan pilih topik hanya karena sedang tren. Prioritaskan topik yang memenuhi minimal 2 dari 4 kriteria berikut, DAN sudah lolos skrining topik sensitif:
+**Kriteria pemilihan topik final:** jangan pilih topik hanya karena sedang tren. Topik final WAJIB memenuhi kriteria 4 (sesuai OBJEKTIF BISNIS), ditambah minimal 1 dari kriteria 1-3, DAN sudah lolos skrining topik sensitif:
 1. Sedang tren atau ada perkembangan terbaru.
 2. Memiliki potensi pencarian organik (SEO).
 3. Relevan dengan kebutuhan pengelola perguruan tinggi (rektor, operator akademik, LPM, PMB, tim IT, dosen).
-4. Memiliki keterkaitan yang natural dengan salah satu solusi Mataer Digital.
+4. **(Wajib)** Memiliki keterkaitan yang natural dengan masalah yang diselesaikan salah satu produk Mataer Digital, sehingga artikel bisa mengalir Masalah → Kebutuhan → Solusi → Produk tanpa dipaksakan. Kalau hubungannya ke produk hanya "sama-sama soal teknologi/digitalisasi", itu belum cukup: cari topik/sudut lain.
 
 ---
 
-### LANGKAH 4 — Tulis Draft Artikel SEO
+### LANGKAH 4 — Rencana Editorial, Penulisan & Quality Gate
 
-**Analisis search intent:** dari hasil riset Langkah 3.5, cek apakah keyword utama punya intent Informational, Commercial Investigation, atau Transactional, lalu sesuaikan struktur artikel (intent transactional/commercial investigation cocok untuk Pilar 3 dengan CTA lebih kuat di awal-tengah artikel; informational cocok untuk Pilar 1/2 dengan CTA di akhir). Baru setelah ini pilih keyword final dan tentukan judul.
+Langkah ini WAJIB mengikuti alur:
+**Keyword → Search Intent → Kebutuhan Pembaca → Angle → Judul → Struktur → Artikel.**
+Jangan menulis judul atau isi sebelum 4A–4E selesai. Keyword density BUKAN fokus: fokusnya artikel benar-benar
+menjawab ekspektasi orang yang mencari keyword tersebut dan membaca judulnya.
 
-**Cek ulang sensitivitas judul:** sebelum finalisasi judul, baca ulang apakah judul atau isi berpotensi menyinggung gender, SARA, politik, atau kontroversi publik. Jika ada keraguan, ganti dengan sudut yang lebih netral dari data yang sama.
+**4A. Search intent & kebutuhan pembaca.** Dari hasil riset Langkah 3.5, tentukan intent keyword utama
+(Informational, Commercial Investigation, atau Transactional), lalu tulis 2-4 pertanyaan konkret yang ada di kepala
+pembaca saat mengetik keyword itu (mis. "apa yang berubah di aturan PMB tahun ini?", "apa dampaknya ke proses
+seleksi kampus saya?", "apa yang perlu disiapkan?"). Struktur artikel nanti harus menjawab pertanyaan-pertanyaan ini.
 
-**STANDAR SEO GOOGLE:**
-- Judul (Title Tag): maksimal 60 karakter, keyword utama di awal
-- Meta Description: 150-160 karakter, menarik untuk diklik
-- URL Slug: lowercase, tanda hubung (-), 5-7 kata, tanpa kata sambung
-- H1: hanya 1, sama/mirip judul
-- H2: sesuai batas per pilar di atas (3-5 buah tergantung pilar), mengandung keyword LSI
-- H3: gunakan seperlunya
-- Keyword density: 1-2%
-- Readability: kalimat maks 20 kata, paragraf maks 3 kalimat
+**4B. Cek artikel Mataer sebelumnya (anti-pengulangan antarartikel).** Panggil
+`GET {API_BASE}/api/article/publicList?page=1&limit=5&flagging=mataer_edutech&search=<keyword/topik/regulasi/event>`.
+Kalau ada artikel published dengan topik/event/regulasi yang sama, baca judul + excerpt-nya (boleh baca field
+`content` untuk maksimal 2 artikel yang paling mirip). Artikel baru WAJIB punya angle atau informasi baru; informasi
+yang sudah dibahas di artikel lama cukup jadi konteks singkat (1-2 kalimat) dan sebaiknya di-link ke artikel lama
+itu (dihitung sebagai internal link di 4G). Kalau tidak ada angle baru yang cukup kuat, kembali ke Langkah 3.5 dan
+pilih topik lain.
 
-**ATURAN WAJIB — Variasi format judul:** Jangan selalu memakai pola "Frasa Utama: Frasa Pelengkap" dengan tanda titik dua. Cek 3-5 judul artikel terakhir sebelum menulis judul baru; jika mayoritas memakai format titik dua, variasikan (kalimat tanya, pernyataan langsung, atau "Kenapa/Bagaimana/Begini Cara...").
+**4C. Editorial angle.** Tentukan SATU angle utama yang jelas dan spesifik, dengan mengisi:
+- Isu utama: [apa yang dibahas, satu kalimat]
+- News hook / alasan dibahas sekarang: [regulasi baru, data baru, momen PMB, dsb.]
+- Target pembaca: [persona/jabatan spesifik]
+- Pertanyaan utama yang dijawab: [satu pertanyaan]
+- Jembatan ke produk: [Masalah → Kebutuhan → Solusi → Produk apa, dan kenapa produk itu relevan]
+
+Setiap H2 dan paragraf harus mendukung angle ini. Bagian yang tidak mendukung angle dibuang, bukan dipertahankan
+demi panjang artikel.
+
+**4D. Focus keyphrase.** Pilih SATU focus keyphrase utama, **maksimal 1-2 kata** (mis. "PMB", "Neo Feeder",
+"akreditasi prodi"), yang merepresentasikan topik utama. Gunakan secara natural di judul (jika memang relevan) dan
+di isi. Jangan memaksakan keyphrase kalau membuat kalimat tidak natural, dan hindari keyword stuffing. Keyword
+turunan/LSI cukup dicatat di [KEYWORD TAMBAHAN].
+
+**4E. Judul (= H1 = SEO Title).** Satu judul yang sama dipakai untuk headline (H1) dan SEO Title, tidak ada
+versi berbeda.
+- Merepresentasikan isi dan angle utama artikel (4C).
+- Menarik dan punya hook (angka, pertanyaan, konsekuensi, hal baru), bukan sekadar menempelkan keyword.
+- Focus keyphrase dipakai secara natural jika memang relevan; tidak harus di awal judul.
+- Idealnya sekitar 50-60 karakter, tapi relevansi dan daya tarik lebih diprioritaskan daripada angka pasti.
+- Hindari judul yang terlalu general, terlalu panjang, template-like, atau terasa dibuat hanya untuk SEO.
+- **Variasi format:** cek 3-5 judul artikel terakhir; jangan selalu memakai pola "Frasa Utama: Frasa Pelengkap".
+  Variasikan dengan kalimat tanya, pernyataan langsung, atau "Kenapa/Bagaimana/Begini Cara...".
+- **Cek sensitivitas:** pastikan judul dan sudut tidak menyinggung gender, SARA, politik, atau kontroversi publik.
+
+Lalu susun **struktur H2/H3** dari pertanyaan pembaca (4A) dan angle (4C), bukan dari template yang sama setiap
+hari. Setiap H2 harus memberi informasi, konteks, atau perspektif baru. Tentukan di H2 mana produk mulai masuk
+(lihat 4F).
+
+**4F. Tulis artikel.**
+
+**STANDAR SEO:**
+- Judul/H1/SEO Title: satu judul yang sama dari 4E; hanya 1 H1.
+- Meta Description: 150-160 karakter, merangkum angle dan menarik untuk diklik.
+- URL Slug: lowercase, tanda hubung (-), 5-7 kata, tanpa kata sambung.
+- H2/H3: dari struktur 4E; H3 seperlunya.
+- Readability: kalimat maks 20 kata, paragraf maks 3 kalimat.
 
 **PANDUAN BAHASA:**
 - Gaya jurnalis Indonesia (Kompas, Tempo, Detik Edu), bukan terjemahan
@@ -374,45 +439,99 @@ Arsip ke ClickUp Doc (Langkah 8)
 - Jangan tulis subjudul "Pendahuluan"
 - Sapaan "Anda"
 - Pembuka langsung ke masalah atau fakta menarik
+- Akronim ditulis kepanjangannya saat pertama muncul: "Penerimaan Mahasiswa Baru (PMB)" (lihat aturan Akronim)
+- Bedakan fakta (dengan sumber), interpretasi, dan opini editorial; jangan sajikan opini seolah fakta
+
+**ALUR PRODUK (Masalah → Kebutuhan → Solusi → Produk):**
+- Paragraf awal membangun pengetahuan/fakta dan masalah dari sumber terverifikasi (mis. fakta regulasi PMB).
+- Setelah konteks terbangun, umumnya mulai paragraf ke-4/5 atau H2 kedua/ketiga, jelaskan kebutuhan kampus yang
+  muncul dari masalah itu, lalu bagaimana produk Mataer yang relevan (mis. Portal PMB/SIAKAD) membantu kampus
+  menjalankan atau memenuhi kebutuhan/regulasi tersebut.
+- Product placement harus terasa sebagai bagian dari pembahasan, bukan iklan yang muncul tiba-tiba. Jangan
+  memasukkan produk hanya karena artikel membahas teknologi atau digitalisasi.
+- Hanya sebut fitur/kemampuan yang ada di PRODUCT DATABASE. Jangan klaim produk "menjamin" kepatuhan regulasi;
+  pakai bahasa seperti "membantu", "mempermudah", "mendukung".
+- Setelah bagian produk, artikel tetap boleh melanjutkan pembahasan yang relevan, lalu ditutup dengan CTA.
 
 **Khusus Pilar 4:** tulis dari sudut pandang persona yang dipilih. Gunakan kata-kata yang mereka pakai sehari-hari.
 
-**Khusus Pilar 3:** tulis khusus tentang satu produk yang dipilih. Hanya sebutkan fitur yang benar-benar tercantum di deskripsi produk resmi.
+**Khusus Pilar 3:** tulis khusus tentang satu produk yang dipilih; produk boleh muncul lebih awal, tapi tetap
+dibuka dari masalah pembaca. Hanya sebutkan fitur yang benar-benar tercantum di PRODUCT DATABASE.
 
-**STRUKTUR ARTIKEL:**
+**4G. Internal link (WAJIB minimal 3).** Setiap artikel wajib memuat **minimal 3 internal link** ke artikel/halaman
+Mataer yang relevan, **di-embed di dalam kalimat isi artikel** sebagai `<a href>` dengan anchor text yang deskriptif
+(bukan "klik di sini"), tersebar di beberapa bagian artikel, bukan dikumpulkan di satu daftar di akhir.
+
+**Cara mencari & verifikasi link (WAJIB, jangan karang URL):**
+- ClickUp Doc/task archive (Langkah 0/8) **BUKAN bukti artikel sudah live di website** — itu cuma arsip draft,
+  banyak yang belum pernah dipublish. Jangan jadikan riwayat ClickUp sebagai dasar `<a href>`.
+- Cari artikel published lewat
+  `GET {API_BASE}/api/article/publicList?page=1&limit=5&flagging=mataer_edutech&search=<keyword>`
+  (lihat detail parameter di bagian KONFIGURASI API WEBSITE). Lakukan beberapa pencarian sampai dapat minimal 3
+  yang relevan: mulai dari focus keyphrase, lalu Topic Cluster, nama produk CTA, nama regulasi/istilah utama, dan
+  Topic Cluster yang berdekatan (mis. PMB ↔ Website Kampus, PDDikti ↔ SIAKAD, Akreditasi ↔ SPMI). Biasanya 2-4
+  panggilan cukup.
+- Pilih artikel yang **judul/excerpt-nya benar-benar relevan** dengan kalimat tempat link dipasang, lalu susun URL
+  publik `https://mataerdigital.com/news/<slug>` dari field `slug`. Jangan link ke URL yang tidak muncul di hasil API.
+- **Halaman produk juga dihitung sebagai internal link** (maksimal 1 dari 3), tapi HANYA URL yang tercantum di
+  `docs/product-knowledge-mataer.md` bagian 4 (mis. `https://mataerdigital.com/product/civitas-pmb`). Pasang di
+  kalimat yang memperkenalkan produk tersebut. Minimal 2 link lainnya tetap ke artikel `/news/<slug>`.
+- Artikel lama dengan topik sama dari 4B diprioritaskan sebagai salah satu link.
+- Kalau setelah semua pencarian di atas tetap kurang dari 3 yang relevan: pasang yang ada saja (jangan dipaksakan
+  ke artikel yang tidak nyambung, jangan menebak URL), lalu tulis catatan di `cover_brief` Langkah 7:
+  "internal link baru [N]/3 — belum ditemukan artikel published yang relevan untuk [keyword yang sudah dicoba]",
+  supaya admin melengkapi saat review.
+
+**4H. Tanggal artikel.** Tanggal publikasi di-generate otomatis saat artikel dibuat: tanggal & jam WIB saat run
+(format ISO 8601 dengan offset, mis. `2026-10-14T08:00:00+07:00`), ditentukan sekali di awal run bersama
+Idempotency-Key. Kalau pengguna yang menjalankan skill secara manual menyebut tanggal lain, pakai tanggal itu.
+Tanggal ini dikirim sebagai `published_at` di Langkah 7 supaya terbawa sampai artikel dipublish (admin tetap bisa
+mengubahnya saat review), sehingga tim tidak perlu input tanggal manual.
+
+**4I. Quality Gate (WAJIB sebelum Langkah 5).** Baca ulang draft dan perbaiki sampai semua lolos:
+1. **Title-content alignment:** apakah judul benar-benar menggambarkan isi dan angle? Apakah isi menjawab janji
+   judul dan pertanyaan pembaca di 4A? Kalau tidak, ubah judul atau isinya.
+2. **Fact check:** setiap angka, tanggal, nama institusi, nama program/event, regulasi, dan istilah sudah cocok
+   dengan sumber primer/resmi. Yang belum terverifikasi dihapus atau diberi atribusi yang jelas. Tidak ada data
+   dari kompetitor.
+3. **Regulation & overclaim:** tafsir regulasi tidak melebihi sumber; kata "wajib", "harus", "terbukti",
+   "menjamin", "menjadi kunci", dan sejenisnya punya dasar; tidak ada sebab-akibat tanpa dukungan sumber;
+   kesimpulan didukung fakta yang dibahas.
+4. **Product fact check:** setiap fitur/manfaat/angka produk yang disebut ada di `docs/product-knowledge-mataer.md` dan tidak masuk bagian 13 (Klaim Terlarang); tidak ada harga/promo bernominal; produk muncul lewat
+   alur Masalah → Kebutuhan → Solusi → Produk dan memang relevan.
+5. **Repetition check:** tidak ada paragraf yang intinya sama (gabungkan/pangkas), tidak ada konsep yang
+   dijelaskan berulang dengan wording berbeda, tidak ada kata yang diulang berlebihan; setiap paragraf memberi
+   nilai baru. Bandingkan juga dengan artikel lama di 4B.
+6. **Akronim:** semua akronim sudah ditulis kepanjangannya saat pertama muncul.
+7. **Internal link:** minimal 3 `<a href>` (minimal 2 ke `https://mataerdigital.com/news/<slug>` hasil API, maksimal 1 ke halaman produk dari product knowledge), embed di kalimat.
+8. **Focus keyphrase:** 1-2 kata, muncul natural, tidak stuffing.
+
+**STRUKTUR OUTPUT ARTIKEL:**
 1. [OUTPUT METADATA] — blok metadata di paling atas artikel:
    ```
    Pillar:
    Website Category:
    Topic Cluster:
    Persona:
-   Target Keyword:
+   Focus Keyphrase (1-2 kata):
    Search Intent:
+   Pertanyaan Pembaca:
+   Angle (isu utama / news hook / target pembaca / pertanyaan utama):
+   Artikel Mataer Terkait Sebelumnya:
    CTA Product:
+   Tanggal Publikasi (published_at):
+   Sumber Utama (URL):
    ```
-2. [JUDUL - max 60 karakter]
+2. [JUDUL = H1 = SEO TITLE]
 3. [META DESCRIPTION - 150-160 karakter]
 4. [URL SLUG]
 5. Paragraf pembuka (langsung ke masalah/fakta)
-6-8. [H2] Subjudul isi (jumlah sesuai batas per pilar)
-9. Paragraf penutup ringkas
-10. [CTA] — wajib ada, produk yang genuinely relevan
-11. [CROSS LINKING / SARAN INTERNAL LINK] — minimal 2, maksimal 5 link, berdasarkan Topic Cluster yang sama (contoh: artikel Neo Feeder → link ke artikel Validasi PDDikti, Error Neo Feeder, SIAKAD), dirender sebagai `<a href>` sungguhan di dalam `content` (bukan cuma daftar teks).
-   **Cara mencari & verifikasi link (WAJIB, jangan andalkan riwayat ClickUp):**
-   - ClickUp Doc/task archive (Langkah 0/8) **BUKAN bukti artikel sudah live di website** — itu cuma arsip draft,
-     banyak yang belum pernah dipublish. Jangan jadikan riwayat ClickUp sebagai dasar `<a href>`.
-   - Cari artikel published yang relevan lewat `GET {API_BASE}/api/article/publicList?page=1&limit=5&flagging=mataer_edutech&search=<Topic Cluster/keyword>`
-     (lihat detail parameter & alasan pakai `search` — bukan fetch semua — di bagian KONFIGURASI API WEBSITE di atas).
-     Jalankan 1 kali per Topic Cluster/keyword yang relevan dengan artikel hari ini (biasanya cukup 1-2 panggilan).
-   - Dari hasil, pilih 2-5 artikel yang **judul/excerpt-nya benar-benar relevan** (jangan asal ambil hasil teratas
-     kalau tidak nyambung ke topik), lalu susun URL publik: `https://mataerdigital.com/news/<slug>` dari field
-     `slug` tiap hasil.
-   - Kalau hasil `search` kosong atau kurang dari 2 yang relevan: **JANGAN memaksakan** `<a href>` ke artikel yang
-     kurang relevan, dan jangan menebak URL tanpa hasil pencarian. Tulis catatan teks biasa di bagian ini:
-     "cross-link belum lengkap — belum ditemukan artikel published yang relevan di Topic Cluster [nama cluster]."
-     Sertakan catatan yang sama di `cover_brief` Langkah 7.
-12. [KEYWORD TAMBAHAN] 5-8 keyword LSI
-13. [REKOMENDASI ALT TEXT GAMBAR]
+6. [H2/H3] isi sesuai struktur 4E, dengan alur produk 4F dan minimal 3 internal link 4G di dalam kalimat
+7. Paragraf penutup ringkas
+8. [CTA] — wajib ada, produk yang genuinely relevan
+9. [DAFTAR INTERNAL LINK] — catatan untuk ringkasan/arsip: anchor text → URL (yang sudah di-embed di isi)
+10. [KEYWORD TAMBAHAN] 5-8 keyword LSI
+11. [REKOMENDASI ALT TEXT GAMBAR]
 
 **PANDUAN CTA — WAJIB ada di setiap artikel:**
 
@@ -486,20 +605,24 @@ itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
 
 **A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
 - Ukuran: 1920 x 1080 px, pakai template baku di atas.
-- **Prompt AI untuk foto latar** (sesuaikan bagian visual dengan topik artikel & judul hari ini; variasikan dari
-  cover-cover sebelumnya supaya tidak monoton — cek arahan cover 2-3 artikel terakhir dulu):
-  "Hero banner for higher education article cover. Large clean white negative space covering the left 40-45 percent
-  of the frame from top to bottom. [deskripsi visual spesifik topik artikel — orang, aktivitas, lokasi kampus] filling
-  the right portion of the frame. Premium corporate design, minimalist, white and blue color scheme, cinematic
-  lighting, realistic people, shallow depth of field, technology-driven university ecosystem, McKinsey report cover
-  style, Times Higher Education editorial style, ultra high resolution, no text, no logo, headline area intentionally
-  left blank."
-- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI — prompt di atas sengaja minta "no text"):
-  - Kicker kecil non-bold: nama Website Category hari ini (mis. "PMB & MARKETING KAMPUS").
-  - Judul artikel bold, dipecah 2-3 baris pendek yang enak dibaca (bukan satu baris panjang mepet), mengikuti judul
-    final dari Langkah 4 — JANGAN dikarang ulang, harus sama persis dengan `title`.
-  - Posisi: rata kiri, dalam zona aman `x:75, y:260` ke bawah (kicker dulu, lalu judul multi-baris).
-  - Warna: biru brand `#1E4FA3` untuk kicker, navy gelap `#0B1F3A` untuk judul (background di zona ini putih/terang).
+- **Prompt AI untuk foto latar** — tulis sebagai deskripsi adegan yang natural dan positif (apa yang ADA di foto),
+  **tanpa daftar larangan/negative case** seperti "no text, no logo, no ...". Sesuaikan adegan dengan topik & judul
+  hari ini, dan variasikan dari cover-cover sebelumnya (cek arahan cover 2-3 artikel terakhir dulu). Contoh pola:
+  "An editorial photograph for a higher education article about [topik singkat]. [Deskripsi adegan spesifik: siapa,
+  sedang melakukan apa, di mana di lingkungan kampus Indonesia]. The people and main subject are on the right side
+  of the frame, while the left side opens onto a bright, softly lit white wall with plenty of calm space. Modern
+  university setting, white and blue color palette, natural soft light, realistic people, shallow depth of field,
+  premium corporate magazine style, high resolution."
+- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI). Yang terpenting: **judul dan subjudul jelas terbaca**.
+  - Kicker kecil non-bold (opsional, ±28px): nama Website Category hari ini (mis. "PMB & MARKETING KAMPUS").
+  - Judul artikel bold (±64-72px), dipecah 2-3 baris pendek yang enak dibaca (bukan satu baris panjang mepet),
+    mengikuti judul final dari Langkah 4 — JANGAN dikarang ulang, harus sama persis dengan `title`.
+  - Subjudul regular (±34-38px), 1-2 baris, maksimal ±80 karakter: ringkasan angle/manfaat artikel dalam bahasa
+    sederhana (boleh diambil/diringkas dari `excerpt`). Akronim di subjudul boleh dipakai tanpa kepanjangan.
+  - Posisi: rata kiri, dalam zona aman `x:75, y:240` ke bawah (kicker → judul → jarak ±28px → subjudul), seluruh
+    teks harus tetap di dalam `x:60-1100, y:150-700`; kecilkan font judul kalau tidak muat, jangan sampai terpotong.
+  - Warna: biru brand `#1E4FA3` untuk kicker, navy gelap `#0B1F3A` untuk judul, abu-navy `#3A4A63` untuk subjudul
+    (background di zona ini putih/terang karena scrim).
 - **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel; elemen
   brand (logo/tagline/blob/pill) tetap baku, tidak diubah.
 
@@ -513,17 +636,17 @@ itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
    lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
 2. **Komposit dengan Python/Pillow** (`pip install Pillow` kalau belum ada di environment):
    - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
-   - **WAJIB — scrim legibility.** Prompt AI di 6A minta "negative space" di kiri, tapi model TIDAK selalu patuh
+   - **WAJIB — scrim legibility.** Prompt AI di 6A meminta area kiri yang lapang, tapi model TIDAK selalu patuh
      (dikonfirmasi via test 6 Agustus 2026: satu run menaruh layar/orang persis di zona teks, judul jadi tidak
-     terbaca). Jangan andalkan negative space dari foto saja — selalu tempel gradient putih semi-transparan di atas
+     terbaca). Jangan andalkan area kosong dari foto saja — selalu tempel gradient putih semi-transparan di atas
      foto SEBELUM template & teks: rectangle RGBA putih penuh tinggi kanvas, alpha ±235/255 dari `x:0` sampai
      `x:700`, fade ke alpha 0 di `x:950` (linear). Ini jaminan keterbacaan apa pun isi fotonya, sekaligus efek
      visual yang konsisten dengan gaya "area putih" pada cover-cover sebelumnya.
    - `Image.alpha_composite()` template `cover-template.png` di atas foto+scrim (paste template PERSIS di atas —
      urutannya penting: foto+scrim dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
      brand selalu terlihat penuh, tidak ketutup foto).
-   - `ImageDraw.text()` untuk kicker + judul multi-baris di zona aman (lihat koordinat & warna di 6A). Font: pakai
-     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
+   - `ImageDraw.text()` untuk kicker + judul multi-baris + subjudul di zona aman (lihat koordinat & warna di 6A). Font: pakai
+     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker & subjudul) dari
      `/usr/share/fonts/truetype/liberation/` sebagai pengganti Montserrat — font Montserrat asli ada di Adobe Fonts
      tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan sandbox (sudah dicek berkali-kali, belum ada solusi).
    - Simpan hasil akhir sebagai JPG quality ±92.
@@ -552,12 +675,13 @@ Headers:
   Content-Type: application/json
 Body (JSON):
 {
-  "title": "<JUDUL, max 60 karakter>",
-  "content": "<isi artikel dalam HTML>",
+  "title": "<JUDUL dari Langkah 4E, idealnya 50-60 karakter>",
+  "content": "<isi artikel dalam HTML, minimal 3 internal link <a href> di dalam kalimat>",
   "excerpt": "<ringkasan 1-2 kalimat>",
-  "seo_title": "<Title Tag, max 60 karakter>",
+  "seo_title": "<SAMA PERSIS dengan title>",
   "meta_description": "<META DESCRIPTION 150-160 karakter>",
-  "focus_keyphrase": "<Target Keyword>",
+  "focus_keyphrase": "<focus keyphrase 1-2 kata dari Langkah 4D>",
+  "published_at": "<tanggal publikasi dari Langkah 4H, mis. 2026-10-14T08:00:00+07:00>",
   "thumbnail_id": "<file id dari Langkah 6B>",      // HILANGKAN jika cover gagal
   "category_ids": ["<category_id dari Langkah 5A>"], // HILANGKAN jika kategori tidak ada
   "tag_ids": ["<tag_id dari Langkah 5B>", ...],      // HILANGKAN jika tidak ada tag relevan
@@ -566,11 +690,12 @@ Body (JSON):
 ```
 
 Pemetaan output artikel → field API:
-- [JUDUL]             → `title` (dan `seo_title`)
+- [JUDUL]             → `title` DAN `seo_title` (nilai identik, H1 = SEO Title)
 - Isi artikel (HTML)  → `content`
 - Ringkasan pembuka   → `excerpt`
 - [META DESCRIPTION]  → `meta_description`
-- Target Keyword      → `focus_keyphrase`
+- Focus Keyphrase     → `focus_keyphrase` (1-2 kata)
+- Tanggal publikasi   → `published_at` (Langkah 4H)
 - Cover file id       → `thumbnail_id` (dari Langkah 6B; opsional)
 - Website Category id → `category_ids` (opsional; lihat Langkah 5A)
 - Tag id yang relevan → `tag_ids` (opsional; lihat Langkah 5B — HANYA tag yang sudah ada di DB)
@@ -587,6 +712,9 @@ Backend OTOMATIS membuat task ClickUp review (assignee admin sosmed; deskripsi b
 Catatan:
 - `content` WAJIB HTML (backend mensanitasi otomatis; tag tak aman dibuang).
 - URL Slug dari Langkah 4 hanya saran; website meng-generate slug dari judul (admin bisa ubah saat review).
+- `published_at` wajib dikirim. `scripts/post-article.sh` otomatis mengisinya dengan waktu WIB saat itu kalau field
+  ini tidak ada di JSON, tapi tetap isi sendiri dari Langkah 4H supaya tanggal yang sama tercatat di metadata/arsip.
+- Kalau internal link < 3 (lihat fallback 4G), tulis catatannya di awal `cover_brief` supaya admin melengkapi.
 
 ---
 
@@ -623,16 +751,24 @@ Gap: [temuan]
 
 KEYWORD DIPILIH: [keyword]
 SKRINING SENSITIVITAS: [aman / dialihkan dari sudut sensitif ke sudut netral - jelaskan singkat]
-KRITERIA TERPENUHI: [sebutkan minimal 2 dari 4 kriteria pemilihan topik]
+KRITERIA TERPENUHI: [kriteria 4 (wajib, jembatan ke produk) + kriteria lain yang terpenuhi dari 1-3]
 PILAR: [1/2/3/4] - [nama pilar]
 WEBSITE CATEGORY: [kategori] - [alasan, termasuk kaitan dengan fase Editorial Priority]
 TOPIC CLUSTER: [cluster]
 PERSONA (jika Pilar 4): [Dosen/Operator/Pimpinan/Tim IT/PMB/Mahasiswa]
-JUDUL: [judul]
+JUDUL (= H1 = SEO Title): [judul] ([N] karakter)
+FOCUS KEYPHRASE: [1-2 kata]
 SEARCH INTENT: [Informational/Commercial Investigation/Transactional]
+ANGLE: [isu utama] | hook: [news hook] | pembaca: [target] | pertanyaan: [pertanyaan utama]
+ARTIKEL MATAER SEBELUMNYA (topik sama): [judul/slug, atau "tidak ada"] → yang baru: [informasi/angle baru]
 PRODUK CTA: [produk dari 9 produk] - [alasan genuine, bukan default]
+ALUR PRODUK: masuk di [paragraf/H2 ke-N] - Masalah [..] → Kebutuhan [..] → Solusi [..] → Produk [..]
 FRASA CTA: [frasa] - [alasan]
 PANJANG: [kata] kata | ESTIMASI BACA: [X] menit
+TANGGAL PUBLIKASI (published_at): [ISO 8601 WIB]
+INTERNAL LINK ([N]/3+): [anchor → URL, ...] (atau catatan kekurangan)
+SUMBER UTAMA: [URL sumber primer/resmi yang dipakai; pastikan tidak ada sumber kompetitor]
+QUALITY GATE 4I: alignment [ok] | fact check [ok] | overclaim [ok] | produk [ok] | repetisi [ok] | akronim [ok]
 
 COVER:
 - Generate cover: [berhasil / gagal]
@@ -649,5 +785,5 @@ KIRIM KE WEBSITE (Automation API):
 
 ClickUp Doc: tersimpan (arsip artikel + arahan cover)
 Task review web: dibuat otomatis oleh backend (deskripsi berisi review_url + arahan cover)
-Arahan Cover: prompt AI + tipografi Montserrat siap
+Arahan Cover: prompt AI natural + tipografi (judul + subjudul) siap
 ```

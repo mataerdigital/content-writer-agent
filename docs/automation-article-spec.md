@@ -72,9 +72,16 @@ Migration kecil, tanpa relasi baru (delete tetap aman).
   - `excerpt`
   - `category_ids?`
   - `tag_ids?`
-  - `seo_title?`
+  - `seo_title?` *(dikirim automation dengan nilai identik `title`: Judul = H1 = SEO Title)*
   - `meta_description?`
-  - `focus_keyphrase?`
+  - `focus_keyphrase?` *(1-2 kata)*
+  - `published_at?` *(ISO 8601 WIB, mis. `2026-10-14T08:00:00+07:00`)* ❓ — tanggal publikasi yang di-generate
+    otomatis saat artikel dibuat. Backend perlu: menyimpan nilai ini sebagai tanggal artikel, menampilkannya
+    (bisa diedit) di form review admin, dan **tidak menimpanya** dengan waktu klik Publish di `PUT /api/article/:id`
+    kecuali admin mengubahnya. Belum dikonfirmasi backend menerima field ini; `scripts/post-article.sh` selalu
+    mengirimnya (auto-isi kalau tidak ada di payload).
+  - `thumbnail_id?` *(file id dari `POST /api/automations/files`)*
+  - `cover_brief?` *(arahan cover, masuk ke deskripsi task ClickUp)*
   - `thumbnail_url?` *(opsional, untuk Opsi B nanti)*
 - Header: `X-API-Key`, `Idempotency-Key`
 - Response:

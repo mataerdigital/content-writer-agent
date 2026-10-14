@@ -1,7 +1,10 @@
 # content-writer-agent
 
-Automation harian yang membuat 1 draft artikel SEO (riset → tulis → cover → kirim ke website Mataer Digital)
-setiap hari kerja jam 08:00 WIB, lalu mengarsipkannya ke ClickUp. Admin sosmed tinggal review dan publish.
+Automation harian yang membuat draft artikel SEO (riset → tulis → cover → kirim ke website Mataer Digital)
+setiap hari kerja, lalu mengarsipkannya ke ClickUp. Admin sosmed tinggal review dan publish.
+
+- **08:00 WIB** — artikel tren/masalah/persona (Pilar 1/2/4), skill `daily-konten-pendidikan-tinggi`.
+- **12:00 WIB** — artikel pengenalan produk Mataer (Pilar 3), skill `artikel-produk-mataer`.
 
 ## Struktur repo
 
@@ -9,11 +12,15 @@ setiap hari kerja jam 08:00 WIB, lalu mengarsipkannya ke ClickUp. Admin sosmed t
 .claude/skills/daily-konten-pendidikan-tinggi/
   SKILL.md              # "otak" automation: framework konten, rotasi, aturan, dan langkah cover
   assets/cover-template.png  # aset brand baku (logo, tagline, dekorasi, pill URL) untuk cover artikel
+.claude/skills/artikel-produk-mataer/
+  SKILL.md              # run produk 12:00: rotasi & pemilihan produk; aturan lain ikut skill pagi
 docs/
+  product-knowledge-mataer.md  # PRODUCT DATABASE: satu-satunya sumber fitur/klaim/URL produk
   scheduled-routine.md  # cara kerja jadwal harian + cara bikin/ubah Trigger
   automation-article-spec.md  # kontrak API antara automation ini dan backend website
 scripts/
   post-article.sh       # kirim draft artikel ke backend (dipanggil di akhir tiap run)
+  test-dev-api.sh       # smoke test kontrak API ke backend dev (bukan production)
 ```
 
 ## Cara kerja automation (ringkas)
@@ -74,6 +81,10 @@ Edit **`.claude/skills/daily-konten-pendidikan-tinggi/SKILL.md`**, bagian:
 | Urutan rotasi persona Pilar 4 | `## FRAMEWORK 4 PILAR KONTEN` → "Rotasi persona (wajib)" |
 | Urutan rotasi produk Pilar 3 | `## FRAMEWORK 4 PILAR KONTEN` → "Rotasi produk Pilar 3" |
 | Daftar Website Category / Topic Cluster | `## WEBSITE CATEGORY` / `## TOPIC CLUSTER` |
+| Daftar produk & fitur yang boleh diklaim (PRODUCT DATABASE) | `docs/product-knowledge-mataer.md` (bukan di `SKILL.md`) |
+| Rotasi produk / aturan khusus artikel produk 12:00 | `.claude/skills/artikel-produk-mataer/SKILL.md` |
+| Aturan editorial (judul, search intent, angle, internal link, alur produk, quality gate) | `### LANGKAH 4` |
+| Aturan sumber, fact check, overclaim, akronim | blok `ATURAN WAJIB` di bawah `## KONFIGURASI API WEBSITE` |
 | Batas jumlah draft per hari | dikontrol backend, bukan di sini — lihat catatan di bagian bawah `SKILL.md` |
 
 Tidak perlu ubah apa pun di `docs/` atau di Trigger untuk perubahan jenis ini — begitu di-commit ke `main`,
