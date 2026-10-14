@@ -591,72 +591,102 @@ Aturan tags:
 ### LANGKAH 6 — Buat Cover Article & Upload
 
 Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** — **TIDAK pakai Canva MCP sama
-sekali** (dihapus dari pipeline per revisi 6 Agustus 2026). Gaya cover **WAJIB meniru gaya KV/thumbnail artikel yang
-sudah ada di mataerdigital.com/news** (lihat contoh di halaman listing News sebelum revisi 14 Oktober 2026 dipakai):
-foto penuh satu frame (bukan foto + panel putih di sebelah), dengan **vignette gelap di bagian atas** supaya judul
-putih selalu terbaca apa pun isi fotonya, **bukan** gradient putih + teks navy di sisi kiri seperti versi lama.
-Elemen brand (logo/tagline/pill) **TIDAK** lagi ditempel di atas foto — cover artikel asli di website juga tidak
-memakainya, brand sudah cukup terwakili lewat header/footer halaman itu sendiri. Asset lama
-`assets/cover-template.png` sudah tidak dipakai di langkah ini (boleh diabaikan, jangan dihapus manual tanpa diminta).
+sekali** (dihapus dari pipeline per revisi 6 Agustus 2026). Gaya cover **WAJIB meniru gaya KV/cover artikel asli di
+mataerdigital.com/news** (divalidasi dengan beberapa contoh cover nyata 14 Oktober 2026): **panel putih bersih di
+40-45% kiri kanvas** (bukan foto penuh satu frame, bukan vignette gelap), foto mengisi sisanya di kanan dengan
+transisi putih→foto yang halus, elemen brand (logo kiri-atas, tagline kanan-atas, pill URL bawah-tengah) tetap
+dipasang via `assets/cover-template.png`, dan judul ditulis dengan gaya **bold lalu lanjutan italic** (bukan kicker
++ judul + subjudul karangan seperti revisi sebelumnya — lihat 6A).
+
+**Asset template baku (reusable, sudah tersedia di repo):** `assets/cover-template.png` — PNG 1920x1080 RGBA berisi
+logo Mataer Edutech (kiri-atas), tagline "Empowering Education Excellence" (kanan-atas), pill "www.mataerdigital.com"
+(bawah-tengah), dan dekorasi blob biru lembut yang **menyebar FULL LEBAR kanvas di `y:700-1080` dengan alpha rendah
+(±90-120/255)** (dikonfirmasi lewat inspeksi alpha channel 14 Oktober 2026). Blob ini didesain untuk latar putih —
+kalau di-composite langsung di atas foto, bleed-nya ke kanan menimbulkan garis/shadow yang terlihat tidak natural
+(ditemukan lewat screenshot pembanding dari tim). **WAJIB mask dulu** sebelum compositing (lihat 6B langkah 2).
 
 **A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
-- Ukuran: 1920 x 1080 px (cover-fit crop dari foto 1536x1024 hasil AI Gateway).
+- Ukuran akhir: 1920 x 1080 px (cover-fit crop dari foto 1536x1024 hasil AI Gateway).
 - **Prompt AI untuk foto latar** — tulis sebagai deskripsi adegan yang natural dan positif (apa yang ADA di foto),
-  **tanpa daftar larangan/negative case** seperti "no text, no logo, no ...". Sesuaikan adegan dengan topik & judul
-  hari ini, dan variasikan dari cover-cover sebelumnya (cek arahan cover 2-3 artikel terakhir dulu). **Tidak perlu**
-  lagi minta "area kosong di sisi kiri" seperti versi lama — vignette gelap di langkah B yang menjamin keterbacaan
-  judul, jadi foto boleh lebih natural/penuh dan subjek boleh mengisi frame. Contoh pola prompt: "An editorial
-  photograph for a higher education article about [topik singkat]. [Deskripsi adegan spesifik: siapa, sedang
-  melakukan apa, di mana di lingkungan kampus Indonesia]. Modern university setting, white and blue color palette,
-  natural soft light, realistic people, shallow depth of field, premium corporate magazine style, high resolution."
-- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI), meniru pola cover asli (kicker kecil regular lalu
-  judul bold, keduanya putih, rata kiri, menumpuk di bagian atas foto yang sudah digelapkan):
-  - Kicker kecil non-bold (opsional, ±26-30px, putih, sedikit letter-spacing): nama Website Category atau nama
-    produk hari ini (mis. "PMB & MARKETING KAMPUS" atau "OPEN FEEDER").
-  - Judul artikel bold (±52-60px, putih), dipecah 2-3 baris pendek yang enak dibaca — **harus teks `title` yang
-    sama persis dari Langkah 4**, JANGAN dikarang ulang, JANGAN ditambah subjudul/dek terpisah yang tidak ada di
-    `title` (cover asli di website juga hanya menampilkan judul, tidak ada tagline tambahan).
-  - Posisi: rata kiri, mulai dari `x:70, y:60` (dekat tepi atas kanvas, bukan tengah vertikal), lebar maksimal teks
-    ±70% dari lebar kanvas (±1150px) supaya ada ruang foto di kanan; kecilkan font kalau tidak muat dalam 3 baris,
-    jangan sampai terpotong.
-  - Warna: putih solid (`#FFFFFF`) untuk kicker dan judul — vignette gelap di langkah B menjamin kontras, TIDAK
-    perlu warna navy/biru lagi.
+  tanpa daftar larangan selain "no text, no logo" di akhir (model kadang tetap merender teks kecil di layar/papan
+  meski diminta tidak — itu keterbatasan model, bukan bug kompositing; kalau mengganggu, hindari kata seperti
+  "document"/"policy"/"screen displaying..." yang memancing model menulis teks). Sesuaikan adegan dengan topik &
+  judul hari ini, dan variasikan dari cover-cover sebelumnya. **Elemen wajib ada di setiap prompt** (dikonfirmasi
+  lewat serangkaian pengujian 14 Oktober 2026 — tanpa salah satu dari ini hasilnya cenderung gagal dan perlu diulang):
+  1. **Wide establishing shot**, kamera "pulled back", ruangan terlihat dari lantai sampai langit-langit, BUKAN
+     medium shot/close-up satu orang — foto yang terlalu zoom bikin nuansa jadi "potret", bukan editorial/majalah.
+  2. **Subjek WAJIB di setengah kanan frame**, dengan instruksi eksplisit semacam "positioned in the right half of
+     the frame" DAN "the entire left 40-45 percent of the image kept open, calm, white/bright, uncluttered" — tanpa
+     ini model sering menaruh orang di tengah/kiri sehingga kepala/badan menimpa area judul.
+  3. **Headroom eksplisit**: instruksikan "the top of the subject's head positioned around one-third down from the
+     top edge, generous open headroom above, like a professional editorial portrait, not cropped close to the
+     head" — tanpa ini kepala talent sering terlalu mepet ke tepi atas foto.
+  4. **Orang Indonesia, wajah kelihatan jelas**: "an Indonesian [peran], face clearly visible" + "realistic
+     Indonesian facial features" — tanpa kata "Indonesian" eksplisit model cenderung menghasilkan wajah
+     western/generic.
+  5. **Pencahayaan terang, BUKAN "cinematic"/gelap**: pakai "bright and airy, natural soft daylight, white and blue
+     color palette (not dark or cinematic)". Kata seperti "cinematic lighting" terbukti menghasilkan ruangan gelap
+     /moody yang kontras dengan gaya cover asli Mataer yang cerah (ditemukan 14 Oktober 2026 saat menguji prompt
+     dengan "cinematic lighting" eksplisit — hasilnya jauh lebih gelap dari cover-cover lain, revisi berikutnya
+     tanpa kata itu kembali cerah dan konsisten).
+  Contoh pola prompt lengkap (gabungan semua poin di atas): "A wide-angle editorial establishing shot for a higher
+  education article about [topik singkat], camera positioned further back so the full bright office/campus
+  environment is visible, not a close-up. An Indonesian [peran], face clearly visible, [deskripsi aktivitas
+  spesifik sesuai topik], inside a bright modern Indonesian university [lokasi] with natural daylight. The subject
+  is positioned in the right half of the frame, with generous open headroom above the head (top of head around
+  one-third down from the top edge), and the entire left 40-45 percent of the image kept open, calm, bright, and
+  uncluttered. Premium corporate design, bright and airy, white and blue color palette, natural soft daylight (not
+  dark or cinematic), realistic Indonesian facial features, shallow depth of field, ultra high resolution, no text,
+  no logo."
+- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI). Tidak ada kicker/subjudul terpisah — yang
+  ditampilkan HANYA `title` dari Langkah 4, dipecah visual jadi dua bagian:
+  - **Bold** (±58-62px, navy `#112037`): frasa pembuka judul, sampai titik potong alami.
+  - *Italic* (±42-46px, navy `#112037` sama, miring): sisa kalimat judul.
+  - **Titik potong**: cari pemisah klausa alami di `title` — tanda titik dua (`:`), kata sambung "dan"/"untuk"/
+    "bagi", atau koma. Potong TEPAT di situ, bold = sebelum pemisah (pemisah ikut ke bold kalau titik dua), italic
+    = sisanya persis apa adanya (termasuk tanda tanya di akhir kalau ada). Gabungan bold+italic harus merekonstruksi
+    `title` persis, TIDAK boleh ada kata yang hilang/berubah/ditambah. Kalau `title` tidak punya pemisah alami,
+    seluruh judul jadi bold saja (tidak usah dipaksakan split).
+  - Posisi: rata kiri mulai `x:75`, bold dimulai `y:330` (bukan dekat tepi atas — ada jarak dari logo), line height
+    bold ±70px, jeda ±6px sebelum italic, line height italic ±54px. Lebar maksimal teks ±620px (muat di panel putih
+    kiri), pecah 2 baris per bagian kalau perlu, kecilkan font kalau masih tidak muat.
 - **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel.
 
 **B. Generate & komposit** (semua lokal, tanpa Canva):
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
    Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
    Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt dari 6A>", "size": "1536x1024", "n": 1 }`
-   (dikonfirmasi via test 6 Agustus 2026: model penuh `openai/gpt-image-1` ditolak `403 no_providers_available`
-   — "Free tier users do not have access to this model" — di akun Vercel AI Gateway saat ini, jadi `-mini` adalah
-   default yang benar-benar jalan. Kalau akun sudah upgrade dari free tier, boleh coba model penuh untuk kualitas
-   lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
+   (model penuh `openai/gpt-image-1` — dan semua model premium lain termasuk varian Gemini image — ditolak
+   `403 no_providers_available` "Free tier users do not have access to this model" selama akun Vercel AI Gateway
+   masih free tier; `-mini` adalah satu-satunya model OpenAI yang jalan di free tier, dikonfirmasi ulang 14 Oktober
+   2026. Kalau akun sudah di-top-up/upgrade dari free tier, boleh ganti ke `openai/gpt-image-1` untuk kualitas
+   lebih tinggi — tinggal ganti string model di body ini, tidak ada perubahan lain yang diperlukan. Alternatif non-
+   OpenAI yang juga terbukti jalan di free tier dan kualitasnya lebih tajam dari `-mini`: `bfl/flux-pro-1.1`, catatan
+   size-nya harus kelipatan 32 dan lebar maksimal 1440 (mis. `"size": "1344x768"`), bukan `1536x1024`). Respons
+   `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
 2. **Komposit dengan Python/Pillow** (`pip install Pillow numpy` kalau belum ada di environment):
-   - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
-   - **WAJIB — dark top vignette, bukan panel putih.** Supaya judul putih **tidak pernah bertabrakan/tenggelam**
-     dengan foto apa pun isinya (masalah yang pernah terjadi di versi panel-putih: foto terang/ramai di zona teks
-     bikin kontras lemah), terapkan DUA layer overlay RGBA hitam/navy gelap (`#0B1F3A`) di atas foto SEBELUM teks:
-     1. **Dim global tipis** ke seluruh kanvas: alpha ±50/255 rata di semua piksel, supaya foto sedikit lebih gelap
-        secara keseluruhan dan teks putih di mana pun tetap kontras.
-     2. **Vignette atas berbentuk plateau, BUKAN fade linear dari `y:0`.** Fade linear dari puncak langsung di `y:0`
-        terbukti gagal saat diuji dengan foto ramai (dikonfirmasi 14 Oktober 2026): baris judul terakhir dari judul
-        3-baris jatuh di zona `y:~240-310` tempat alpha sudah meluruh ke ±80/255, kontrasnya lemah dan nyaris
-        bertabrakan dengan detail foto (mis. teks di layar monitor). Perbaikannya: alpha **tetap penuh (plateau)**
-        sepanjang seluruh blok teks (kicker + sampai 3 baris judul), baru fade ke 0 setelahnya —
-        alpha ±215/255 rata dari `y:0` sampai `y:380` (plateau, menutupi kicker+judul 3 baris apa pun panjangnya),
-        fade linear ke alpha 0 di `y:620`. Hasilnya meniru gaya vignette gelap-ke-foto-asli pada cover artikel yang
-        sudah tayang di mataerdigital.com/news, dan judul tetap terbaca penuh terlepas dari berapa baris yang dipakai.
-     Gunakan numpy untuk generate gradient array lalu `Image.alpha_composite()`, sama seperti pola scrim versi lama,
-     cuma arah & warnanya beda (atas-gelap, bukan kiri-putih).
-   - **TIDAK ADA lagi** langkah composite `cover-template.png` — lewati sepenuhnya.
-   - `ImageDraw.text()` untuk kicker + judul multi-baris putih di zona aman (lihat koordinat & warna di 6A). Font:
-     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
-     `/usr/share/fonts/truetype/liberation/` sebagai pengganti Montserrat — font Montserrat asli ada di Adobe Fonts
-     tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan sandbox (sudah dicek berkali-kali, belum ada solusi).
+   - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080. **Bias crop vertikal ke bawah**
+     (ambil seluruh kelebihan tinggi dari bawah kanvas, bukan dipotong rata tengah/atas) supaya headroom di atas
+     kepala talent dari langkah 6A tidak ikut terpotong.
+   - **WAJIB — gradient scrim putih kiri pakai smoothstep, BUKAN flat+linear.** Scrim versi awal (alpha flat penuh
+     lalu patah ke fade linear) menghasilkan "elbow"/patahan yang terlihat sebagai garis vertikal aneh memotong
+     badan talent di foto (ditemukan dari feedback visual 14 Oktober 2026). Perbaikannya: gradient alpha yang mulus
+     tanpa patahan sama sekali, pakai fungsi smoothstep `t*t*(3-2t)` dari `fade_start≈150` (alpha hampir maksimal
+     ±245/255) sampai `fade_end≈1450` (alpha 0), diterapkan di seluruh tinggi kanvas secara merata.
+   - **WAJIB — mask blob dekorasi di `cover-template.png` supaya tidak bleed ke foto.** Karena blob menyebar full
+     lebar kanvas dengan alpha rendah (lihat catatan asset di atas), composite template APA ADANYA bikin area foto
+     kanan ketutup wash kebiruan yang terlihat tidak natural. Sebelum compositing, kalikan alpha channel template
+     dengan mask horizontal: alpha penuh (×1.0) untuk `x<1000`, fade ke 0 antara `x:1000-1300`, lalu 0 untuk
+     `x>1300` — KECUALI baris header (`y<200`, tempat logo & tagline berada) yang selalu dikecualikan dari mask ini
+     (tetap alpha penuh di situ apa pun nilai x, supaya tagline kanan-atas tidak ikut hilang).
+   - Urutan compositing: foto(crop) → scrim putih (smoothstep) → template yang sudah di-mask → teks (lihat 6A).
+   - `ImageDraw.text()` untuk judul bold+italic di posisi dari 6A. Font: `LiberationSans-Bold.ttf` (bagian bold),
+     `LiberationSans-Italic.ttf` (bagian italic) dari `/usr/share/fonts/truetype/liberation/` sebagai pengganti
+     Montserrat — font Montserrat asli ada di Adobe Fonts tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan
+     sandbox (sudah dicek berkali-kali, belum ada solusi).
    - Simpan hasil akhir sebagai JPG quality ±92.
 3. Upload JPG hasil akhir ke `POST {API_BASE}/api/automations/files` (multipart field `file`, langsung dari file
-   lokal — TIDAK perlu lewat `image_url` seperti sebelumnya karena tidak ada lagi domain Canva yang perlu di-proxy).
-   Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
+   lokal). Respons `201` → `{ data: { id, url, ... } }`. Simpan `data.id` sebagai **thumbnail_id** untuk Langkah 7.
 
 **Fallback:** kalau AI Gateway tidak tersambung/kena limit kredit bulanan, atau Pillow/font tidak tersedia di
 environment yang menjalankan routine, lanjut TANPA thumbnail (kirim draft tanpa `thumbnail_id`); tulis di
