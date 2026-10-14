@@ -591,40 +591,37 @@ Aturan tags:
 ### LANGKAH 6 — Buat Cover Article & Upload
 
 Cover dibuat langsung via **AI Gateway + kompositing lokal ringan (Pillow/Python)** — **TIDAK pakai Canva MCP sama
-sekali** (dihapus dari pipeline per revisi 6 Agustus 2026; kompositing multi-step di Canva `edit-design` terbukti
-bekerja tapi kompleks dan lambat dibanding cukup satu prompt AI + template PNG statis). Elemen brand baku (logo,
-tagline, dekorasi blob, pill URL) sudah baku di satu file template yang di-reuse tiap artikel — yang berubah tiap
-hari hanya foto latar (dari AI Gateway) dan judul/tipografi (di-render lokal).
-
-**Asset template baku (reusable, sudah tersedia di repo — tidak perlu dibuat ulang):**
-`.claude/skills/daily-konten-pendidikan-tinggi/assets/cover-template.png` — PNG 1920x1080 RGBA, transparan total
-kecuali logo Mataer Edutech (pojok kiri atas), tagline "Empowering Education Excellence" 3 warna (pojok kanan atas),
-dekorasi blob biru lembut (pojok kiri-bawah & kanan-bawah), dan pill "www.mataerdigital.com" (bawah tengah). Area
-`x:60-1100, y:150-700` pada kanvas ini benar-benar transparan/kosong (dikonfirmasi lewat inspeksi alpha channel) —
-itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
+sekali** (dihapus dari pipeline per revisi 6 Agustus 2026). Gaya cover **WAJIB meniru gaya KV/thumbnail artikel yang
+sudah ada di mataerdigital.com/news** (lihat contoh di halaman listing News sebelum revisi 14 Oktober 2026 dipakai):
+foto penuh satu frame (bukan foto + panel putih di sebelah), dengan **vignette gelap di bagian atas** supaya judul
+putih selalu terbaca apa pun isi fotonya, **bukan** gradient putih + teks navy di sisi kiri seperti versi lama.
+Elemen brand (logo/tagline/pill) **TIDAK** lagi ditempel di atas foto — cover artikel asli di website juga tidak
+memakainya, brand sudah cukup terwakili lewat header/footer halaman itu sendiri. Asset lama
+`assets/cover-template.png` sudah tidak dipakai di langkah ini (boleh diabaikan, jangan dihapus manual tanpa diminta).
 
 **A. Susun arahan desain cover** (teks ini juga dikirim ke `cover_brief` di Langkah 7, masuk ke deskripsi task ClickUp):
-- Ukuran: 1920 x 1080 px, pakai template baku di atas.
+- Ukuran: 1920 x 1080 px (cover-fit crop dari foto 1536x1024 hasil AI Gateway).
 - **Prompt AI untuk foto latar** — tulis sebagai deskripsi adegan yang natural dan positif (apa yang ADA di foto),
   **tanpa daftar larangan/negative case** seperti "no text, no logo, no ...". Sesuaikan adegan dengan topik & judul
-  hari ini, dan variasikan dari cover-cover sebelumnya (cek arahan cover 2-3 artikel terakhir dulu). Contoh pola:
-  "An editorial photograph for a higher education article about [topik singkat]. [Deskripsi adegan spesifik: siapa,
-  sedang melakukan apa, di mana di lingkungan kampus Indonesia]. The people and main subject are on the right side
-  of the frame, while the left side opens onto a bright, softly lit white wall with plenty of calm space. Modern
-  university setting, white and blue color palette, natural soft light, realistic people, shallow depth of field,
-  premium corporate magazine style, high resolution."
-- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI). Yang terpenting: **judul dan subjudul jelas terbaca**.
-  - Kicker kecil non-bold (opsional, ±28px): nama Website Category hari ini (mis. "PMB & MARKETING KAMPUS").
-  - Judul artikel bold (±64-72px), dipecah 2-3 baris pendek yang enak dibaca (bukan satu baris panjang mepet),
-    mengikuti judul final dari Langkah 4 — JANGAN dikarang ulang, harus sama persis dengan `title`.
-  - Subjudul regular (±34-38px), 1-2 baris, maksimal ±80 karakter: ringkasan angle/manfaat artikel dalam bahasa
-    sederhana (boleh diambil/diringkas dari `excerpt`). Akronim di subjudul boleh dipakai tanpa kepanjangan.
-  - Posisi: rata kiri, dalam zona aman `x:75, y:240` ke bawah (kicker → judul → jarak ±28px → subjudul), seluruh
-    teks harus tetap di dalam `x:60-1100, y:150-700`; kecilkan font judul kalau tidak muat, jangan sampai terpotong.
-  - Warna: biru brand `#1E4FA3` untuk kicker, navy gelap `#0B1F3A` untuk judul, abu-navy `#3A4A63` untuk subjudul
-    (background di zona ini putih/terang karena scrim).
-- **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel; elemen
-  brand (logo/tagline/blob/pill) tetap baku, tidak diubah.
+  hari ini, dan variasikan dari cover-cover sebelumnya (cek arahan cover 2-3 artikel terakhir dulu). **Tidak perlu**
+  lagi minta "area kosong di sisi kiri" seperti versi lama — vignette gelap di langkah B yang menjamin keterbacaan
+  judul, jadi foto boleh lebih natural/penuh dan subjek boleh mengisi frame. Contoh pola prompt: "An editorial
+  photograph for a higher education article about [topik singkat]. [Deskripsi adegan spesifik: siapa, sedang
+  melakukan apa, di mana di lingkungan kampus Indonesia]. Modern university setting, white and blue color palette,
+  natural soft light, realistic people, shallow depth of field, premium corporate magazine style, high resolution."
+- **Tipografi** (di-render lokal di atas foto, BUKAN oleh AI), meniru pola cover asli (kicker kecil regular lalu
+  judul bold, keduanya putih, rata kiri, menumpuk di bagian atas foto yang sudah digelapkan):
+  - Kicker kecil non-bold (opsional, ±26-30px, putih, sedikit letter-spacing): nama Website Category atau nama
+    produk hari ini (mis. "PMB & MARKETING KAMPUS" atau "OPEN FEEDER").
+  - Judul artikel bold (±52-60px, putih), dipecah 2-3 baris pendek yang enak dibaca — **harus teks `title` yang
+    sama persis dari Langkah 4**, JANGAN dikarang ulang, JANGAN ditambah subjudul/dek terpisah yang tidak ada di
+    `title` (cover asli di website juga hanya menampilkan judul, tidak ada tagline tambahan).
+  - Posisi: rata kiri, mulai dari `x:70, y:60` (dekat tepi atas kanvas, bukan tengah vertikal), lebar maksimal teks
+    ±70% dari lebar kanvas (±1150px) supaya ada ruang foto di kanan; kecilkan font kalau tidak muat dalam 3 baris,
+    jangan sampai terpotong.
+  - Warna: putih solid (`#FFFFFF`) untuk kicker dan judul — vignette gelap di langkah B menjamin kontras, TIDAK
+    perlu warna navy/biru lagi.
+- **ATURAN WAJIB — Hindari cover monoton:** variasikan foto latar & pemotongan baris judul tiap artikel.
 
 **B. Generate & komposit** (semua lokal, tanpa Canva):
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
@@ -634,19 +631,21 @@ itu zona aman untuk foto + judul, tidak akan tertutup elemen brand.
    — "Free tier users do not have access to this model" — di akun Vercel AI Gateway saat ini, jadi `-mini` adalah
    default yang benar-benar jalan. Kalau akun sudah upgrade dari free tier, boleh coba model penuh untuk kualitas
    lebih tinggi). Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
-2. **Komposit dengan Python/Pillow** (`pip install Pillow` kalau belum ada di environment):
+2. **Komposit dengan Python/Pillow** (`pip install Pillow numpy` kalau belum ada di environment):
    - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080.
-   - **WAJIB — scrim legibility.** Prompt AI di 6A meminta area kiri yang lapang, tapi model TIDAK selalu patuh
-     (dikonfirmasi via test 6 Agustus 2026: satu run menaruh layar/orang persis di zona teks, judul jadi tidak
-     terbaca). Jangan andalkan area kosong dari foto saja — selalu tempel gradient putih semi-transparan di atas
-     foto SEBELUM template & teks: rectangle RGBA putih penuh tinggi kanvas, alpha ±235/255 dari `x:0` sampai
-     `x:700`, fade ke alpha 0 di `x:950` (linear). Ini jaminan keterbacaan apa pun isi fotonya, sekaligus efek
-     visual yang konsisten dengan gaya "area putih" pada cover-cover sebelumnya.
-   - `Image.alpha_composite()` template `cover-template.png` di atas foto+scrim (paste template PERSIS di atas —
-     urutannya penting: foto+scrim dulu jadi base RGBA, baru template di-composite di atas supaya logo/tagline/blob/pill
-     brand selalu terlihat penuh, tidak ketutup foto).
-   - `ImageDraw.text()` untuk kicker + judul multi-baris + subjudul di zona aman (lihat koordinat & warna di 6A). Font: pakai
-     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker & subjudul) dari
+   - **WAJIB — dark top vignette, bukan panel putih.** Supaya judul putih **tidak pernah bertabrakan/tenggelam**
+     dengan foto apa pun isinya (masalah yang pernah terjadi di versi panel-putih: foto terang/ramai di zona teks
+     bikin kontras lemah), terapkan DUA layer overlay RGBA hitam/navy gelap (`#0B1F3A`) di atas foto SEBELUM teks:
+     1. **Dim global tipis** ke seluruh kanvas: alpha ±45/255 rata di semua piksel, supaya foto sedikit lebih gelap
+        secara keseluruhan dan teks putih di mana pun tetap kontras.
+     2. **Vignette atas** full lebar kanvas (bukan cuma sisi kiri): alpha ±205/255 di `y:0`, fade linear ke alpha 0
+        di `y:520` — ini area tempat kicker+judul duduk. Hasilnya meniru gaya vignette gelap-ke-foto-asli pada cover
+        artikel yang sudah tayang di mataerdigital.com/news.
+     Gunakan numpy untuk generate gradient array lalu `Image.alpha_composite()`, sama seperti pola scrim versi lama,
+     cuma arah & warnanya beda (atas-gelap, bukan kiri-putih).
+   - **TIDAK ADA lagi** langkah composite `cover-template.png` — lewati sepenuhnya.
+   - `ImageDraw.text()` untuk kicker + judul multi-baris putih di zona aman (lihat koordinat & warna di 6A). Font:
+     `LiberationSans-Bold.ttf` (judul) dan `LiberationSans-Regular.ttf` (kicker) dari
      `/usr/share/fonts/truetype/liberation/` sebagai pengganti Montserrat — font Montserrat asli ada di Adobe Fonts
      tapi CDN `use.typekit.net`-nya diblokir kebijakan jaringan sandbox (sudah dicek berkali-kali, belum ada solusi).
    - Simpan hasil akhir sebagai JPG quality ±92.

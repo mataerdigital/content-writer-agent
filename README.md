@@ -103,9 +103,10 @@ run berikutnya otomatis pakai aturan baru.
 
 ### 4. Ubah desain / elemen brand di cover artikel
 
-- Elemen baku (logo, tagline, dekorasi, pill URL): ganti file `.claude/skills/daily-konten-pendidikan-tinggi/assets/cover-template.png`
-  dengan PNG baru berukuran sama (1920x1080, transparan di luar elemen brand).
-- Posisi/warna teks judul, ukuran font, prompt foto AI: edit `SKILL.md` Langkah 6.
+- Cover artikel meniru gaya KV/thumbnail asli di mataerdigital.com/news: foto penuh + vignette gelap di atas +
+  judul putih, **tanpa** overlay logo/tagline/pill (sudah tidak dipakai sejak revisi 14 Oktober 2026 — asset lama
+  `.claude/skills/daily-konten-pendidikan-tinggi/assets/cover-template.png` tidak lagi direferensikan).
+- Posisi/warna teks judul, kekuatan vignette, ukuran font, prompt foto AI: edit `SKILL.md` Langkah 6.
 
 ### 5. Ubah endpoint / kontrak API backend
 
