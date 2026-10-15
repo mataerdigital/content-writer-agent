@@ -656,14 +656,24 @@ kalau di-composite langsung di atas foto, bleed-nya ke kanan menimbulkan garis/s
 1. **Generate foto latar** — `POST https://ai-gateway.vercel.sh/v1/images/generations`
    Headers: `Authorization: Bearer {AI_GATEWAY_API_KEY}`, `Content-Type: application/json`
    Body: `{ "model": "openai/gpt-image-1-mini", "prompt": "<prompt dari 6A>", "size": "1536x1024", "n": 1 }`
-   (model penuh `openai/gpt-image-1` — dan semua model premium lain termasuk varian Gemini image — ditolak
-   `403 no_providers_available` "Free tier users do not have access to this model" selama akun Vercel AI Gateway
-   masih free tier; `-mini` adalah satu-satunya model OpenAI yang jalan di free tier, dikonfirmasi ulang 14 Oktober
-   2026. Kalau akun sudah di-top-up/upgrade dari free tier, boleh ganti ke `openai/gpt-image-1` untuk kualitas
-   lebih tinggi — tinggal ganti string model di body ini, tidak ada perubahan lain yang diperlukan. Alternatif non-
-   OpenAI yang juga terbukti jalan di free tier dan kualitasnya lebih tajam dari `-mini`: `bfl/flux-pro-1.1`, catatan
-   size-nya harus kelipatan 32 dan lebar maksimal 1440 (mis. `"size": "1344x768"`), bukan `1536x1024`). Respons
-   `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
+   — **ini model final/default, JANGAN diganti tanpa diminta eksplisit.** Dipilih lewat perbandingan langsung 14-15
+   Oktober 2026: dengan prompt yang sama persis, keluarga model OpenAI (`gpt-image-1-mini` maupun `gpt-image-1`
+   penuh) menghasilkan foto bergaya "editorial kantor kampus" yang jauh lebih dekat ke gaya KV Mataer (busana batik,
+   rak buku, kalender meja, kursi kosong di latar) dibanding `bfl/flux-pro-1.1` — meski FLUX juga diuji dengan
+   instruksi komposisi identik. Jadi perbedaannya soal **keluarga model**, bukan soal prompt kurang detail; FLUX
+   HANYA dipakai sebagai fallback kalau `gpt-image-1-mini` benar-benar tidak bisa diakses (lihat catatan size-nya
+   di bawah kalau terpaksa pakai), bukan alternatif pertama.
+   - Model penuh `openai/gpt-image-1` sempat bisa diakses setelah akun di-upgrade dari free tier (14 Oktober 2026),
+     tapi **kembali 403 `no_providers_available` keesokan harinya** tanpa perubahan apa pun dari sisi automation —
+     kemungkinan credit top-up habis/billing bermasalah di tim Vercel yang terhubung. Kalau mau pakai model penuh,
+     **cek dulu status billing di dashboard Vercel AI Gateway** sebelum mengandalkannya untuk run terjadwal; jangan
+     asumsikan akses yang pernah berhasil sekali akan tetap aktif selamanya. `-mini` tidak punya masalah ini.
+   - **Catatan env var:** kalau `AI_GATEWAY_API_KEY` baru saja diganti di pengaturan environment, perubahan itu
+     baru berlaku di **sesi baru** — sesi yang sedang berjalan tetap memakai key lama sampai di-restart/dibuka ulang
+     (dikonfirmasi lewat pengujian langsung 15 Oktober 2026, panjang key tidak berubah meski sudah diganti).
+   - Alternatif non-OpenAI (`bfl/flux-pro-1.1`) size-nya harus kelipatan 32 dan lebar maksimal 1440 (mis.
+     `"size": "1344x768"`), bukan `1536x1024`, kalau sewaktu-waktu dipakai sebagai fallback.
+   Respons `data[0].b64_json` → decode base64 → simpan sebagai PNG lokal sementara.
 2. **Komposit dengan Python/Pillow** (`pip install Pillow numpy` kalau belum ada di environment):
    - Buka foto latar, resize+crop (cover-fit, bukan stretch) ke persis 1920x1080. **Bias crop vertikal ke bawah**
      (ambil seluruh kelebihan tinggi dari bawah kanvas, bukan dipotong rata tengah/atas) supaya headroom di atas
